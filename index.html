@@ -1,0 +1,66 @@
+!DOCTYPE html
+html lang=en
+head
+  meta charset=UTF-8
+  meta name=viewport content=width=device-width, initial-scale=1.0
+  titleVadisi Reportstitle
+  link rel=stylesheet href=style.css
+  script type=module src=script.js deferscript
+head
+body
+  header
+    h1Vadisi Reportsh1
+    button id=loginBtnSign Inbutton
+    button id=logoutBtn hiddenLogoutbutton
+  header
+
+  section id=addReport
+    h2Add Reporth2
+    form id=reportForm
+      input type=url id=link placeholder=Instagram Link required
+      input type=text id=agency placeholder=Agency required
+      input type=text id=movie placeholder=Movie required
+      input type=number id=amount placeholder=Amount required
+      select id=status required
+        option value=Statusoption
+        option value=PendingPendingoption
+        option value=ClearedClearedoption
+      select
+      input type=date id=date required
+      button type=submitAddbutton
+    form
+  section
+
+  section id=filters
+    h2Filter Reportsh2
+    input type=text id=filterAgency placeholder=Filter by agency
+    input type=text id=filterMovie placeholder=Filter by movie
+    select id=filterStatus
+      option value=All Statusoption
+      option value=PendingPendingoption
+      option value=ClearedClearedoption
+    select
+    input type=date id=fromDate
+    input type=date id=toDate
+    button id=applyFiltersApplybutton
+    button id=clearFiltersClearbutton
+    button id=exportCSVExport CSVbutton
+  section
+
+  section id=reportTable
+    table
+      thead
+        tr
+          thLinkth
+          thAgencyth
+          thMovieth
+          thAmountth
+          thStatusth
+          thDateth
+        tr
+      thead
+      tbody id=reportBodytbody
+    table
+  section
+body
+html

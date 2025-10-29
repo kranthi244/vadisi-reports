@@ -1,52 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vadisi Reports</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vadisi Reports — Dashboard</title>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="app.js" defer></script>
 </head>
 <body>
-  <header>
-    <h1>Vadisi Reports</h1>
-    <button id="loginBtn">Sign In</button>
-    <button id="logoutBtn" hidden>Logout</button>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Vadisi Reports</h1>
+      <p class="muted">Promotions & Payments dashboard</p>
+    </div>
+    <div class="controls">
+      <div id="userInfo" class="user-info">
+        <span id="userEmail" class="muted">Not signed in</span>
+        <button id="loginBtn" class="btn primary">Sign in</button>
+        <button id="logoutBtn" class="btn" hidden>Logout</button>
+      </div>
+    </div>
   </header>
 
-  <section id="addReport">
-    <h2>Add Report</h2>
-    <form id="reportForm">
-      <input type="url" id="link" placeholder="Instagram Link" required />
-      <input type="text" id="agency" placeholder="Agency" required />
-      <input type="text" id="movie" placeholder="Movie" required />
-      <input type="number" id="amount" placeholder="Amount" required />
-      <select id="status" required>
-        <option value="">Select Status</option>
-        <option value="Pending">Pending</option>
-        <option value="Cleared">Cleared</option>
-      </select>
-      <input type="date" id="date" />
-      <button type="submit">Add</button>
-    </form>
-  </section>
+  <main class="container">
+    <section class="grid grid-2">
+      <div class="card summary">
+        <h3>Summary</h3>
+        <div class="summary-grid">
+          <div class="tile">
+            <div class="tile-title">Total Reports</div>
+            <div id="totalReports" class="tile-value">0</div>
+          </div>
+          <div class="tile">
+            <div class="tile-title">Pending Amount</div>
+            <div id="pendingAmount" class="tile-value">₹0</div>
+          </div>
+          <div class="tile">
+            <div class="tile-title">Paid Amount</div>
+            <div id="paidAmount" class="tile-value">₹0</div>
+          </div>
+          <div class="tile">
+            <div class="tile-title">Top Agency</div>
+            <div id="topAgency" class="tile-value">—</div>
+          </div>
+        </div>
+      </div>
 
-  <section id="reportTable">
-    <h2>Your Reports</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Link</th>
-          <th>Agency</th>
-          <th>Movie</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="reportBody"></tbody>
-    </table>
-  </section>
+      <div class="card add">
+        <h3>Add Report</h3>
+        <form id="reportForm" class="form-grid">
+          <input id="link" type="url" placeholder="Instagram link (https://...)" required />
+          <input id="agency" type="text" placeholder="Agency" required />
+          <input id="movie" type="text" placeholder="Movie" required />
+          <input id="amount" type="number" placeholder="Amount (₹)" required />
+          <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+          </select>
+          <input id="date" type="date" />
+          <textarea id="notes" placeholder="Notes (optional)"></textarea>
+          <div class="form-actions">
+            <button id="addBtn" class="btn primary" type="submit">Add</button>
+            <button id="clearForm" class="btn" type="button">Clear</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="card filters">
+      <div class="filters-row">
+        <input id="searchText" type="search" placeholder="Search link / agency / movie" />
+        <select id="filterStatus">
+          <option value="All">All status</option>
+          <option value="Pending">Pending</option>
+          <option value="Paid">Paid</option>
+        </select>
+        <input id="fromDate" type="date" />
+        <input id="toDate" type="date" />
+        <select id="sortBy">
+          <option value="date_desc">Date ▾</option>
+          <option value="date_asc">Date ▴</option>
+          <option value="amount_desc">Amount ▾</option>
+          <option value="amount_asc">Amount ▴</option>
+          <option value="agency_asc">Agency A→Z</option>
+          <option value="agency_desc">Agency Z→A</option>
+        </select>
+        <button id="applyFilters" class="btn">Apply</button>
+        <button id="resetFilters" class="btn">Reset</button>
+        <button id="exportCSV" class="btn">Export CSV</button>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <h3>Your Reports</h3>
+      <div class="table-wrap">
+        <table id="reportsTable" class="reports-table">
+          <thead>
+            <tr>
+              <th>Link</th>
+              <th>Agency</th>
+              <th>Movie</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reportsBody">
+            <tr><td colspan="8" class="muted">Sign in to view your reports</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- UI script (imports Firebase modules but DOES NOT initialize app) -->
+  <script type="module" src="ui.js"></script>
 </body>
 </html>

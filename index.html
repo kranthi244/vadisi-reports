@@ -1,94 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vadisi Reports</title>
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="script.js" defer></script>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <header>
     <h1>Vadisi Reports</h1>
-    <div class="auth-controls">
+    <div class="auth-buttons">
       <button id="loginBtn">Sign In</button>
       <button id="logoutBtn" hidden>Logout</button>
     </div>
   </header>
 
   <main>
-    <section id="addReport" aria-labelledby="addReportHeading">
-      <h2 id="addReportHeading">Add Report</h2>
+    <!-- Add Report Section -->
+    <section id="addReport">
+      <h2>Add Report</h2>
       <form id="reportForm">
-        <div class="field">
-          <label for="link">Instagram Link</label>
-          <input type="url" id="link" placeholder="https://instagram.com/..." required />
-        </div>
+        <input type="url" id="link" placeholder="Instagram Link" required>
+        <input type="text" id="agency" placeholder="Agency" required>
+        <input type="text" id="movie" placeholder="Movie" required>
+        <input type="number" id="amount" placeholder="Amount" required>
 
-        <div class="field">
-          <label for="agency">Agency</label>
-          <input type="text" id="agency" placeholder="Agency" required />
-        </div>
-
-        <div class="field">
-          <label for="movie">Movie</label>
-          <input type="text" id="movie" placeholder="Movie" required />
-        </div>
-
-        <div class="field">
-          <label for="amount">Amount</label>
-          <input type="number" id="amount" placeholder="Amount" required />
-        </div>
-
-        <div class="field">
-          <label for="status">Status</label>
-          <select id="status" required>
-            <option value="" disabled selected>Select status</option>
-            <option value="Pending">Pending</option>
-            <option value="Cleared">Cleared</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="date">Date</label>
-          <input type="date" id="date" required />
-        </div>
-
-        <div class="actions">
-          <button type="submit">Add</button>
-        </div>
-      </form>
-    </section>
-
-    <section id="filters" aria-labelledby="filtersHeading">
-      <h2 id="filtersHeading">Filter Reports</h2>
-
-      <div class="filter-row">
-        <input type="text" id="filterAgency" placeholder="Filter by agency" />
-        <input type="text" id="filterMovie" placeholder="Filter by movie" />
-        <select id="filterStatus">
-          <option value="All">All Status</option>
+        <select id="status" required>
+          <option value="">Select Status</option>
           <option value="Pending">Pending</option>
           <option value="Cleared">Cleared</option>
         </select>
-      </div>
 
+        <input type="date" id="date" required>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <!-- Filter Section -->
+    <section id="filters">
+      <h2>Filter Reports</h2>
       <div class="filter-row">
-        <label for="fromDate">From</label>
-        <input type="date" id="fromDate" />
-        <label for="toDate">To</label>
-        <input type="date" id="toDate" />
-      </div>
+        <input type="text" id="filterAgency" placeholder="Filter by agency">
+        <input type="text" id="filterMovie" placeholder="Filter by movie">
 
-      <div class="filter-actions">
+        <select id="filterStatus">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Cleared">Cleared</option>
+        </select>
+
+        <input type="date" id="fromDate">
+        <input type="date" id="toDate">
+
         <button id="applyFilters">Apply</button>
         <button id="clearFilters">Clear</button>
         <button id="exportCSV">Export CSV</button>
       </div>
     </section>
 
-    <section id="reportTable" aria-labelledby="reportTableHeading">
-      <h2 id="reportTableHeading">Reports</h2>
+    <!-- Report Table -->
+    <section id="reportTable">
+      <h2>Reports</h2>
       <table>
         <thead>
           <tr>
@@ -101,10 +74,12 @@
           </tr>
         </thead>
         <tbody id="reportBody">
-          <!-- Rows injected by script.js -->
+          <!-- Data rows will appear here -->
         </tbody>
       </table>
     </section>
   </main>
+
+  <script src="script.js"></script>
 </body>
 </html>

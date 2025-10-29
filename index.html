@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Telugu Swaggers</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="ui.js" defer></script>
 </head>
 <body>
   <header>
@@ -12,6 +13,7 @@
     <div class="auth-buttons">
       <button id="loginBtn">Sign In</button>
       <button id="logoutBtn" hidden>Logout</button>
+      <button id="darkModeToggle">🌙</button>
     </div>
   </header>
 
@@ -19,32 +21,45 @@
     <section id="addReport">
       <h2>Add Report</h2>
       <form id="reportForm">
-        <input type="url" id="link" placeholder="Insta/X Link" required>
-        <input type="text" id="agency" placeholder="Agency" required>
-        <input type="text" id="movie" placeholder="Movie" required>
-        <input type="number" id="amount" placeholder="Amount" value="1200" required>
+        <input type="url" id="link" placeholder="Insta/X Link" required />
+        <input type="text" id="agency" placeholder="Agency" required />
+        <input type="text" id="movie" placeholder="Movie" required />
+        <input type="number" id="amount" placeholder="Amount" value="1200" required />
         <select id="status" required>
-          <option value="">Select Status</option>
           <option value="Pending">Pending</option>
           <option value="Cleared">Cleared</option>
         </select>
-        <input type="date" id="date">
-        <textarea id="notes" placeholder="Notes (optional)"></textarea>
+        <input type="date" id="date" required />
+        <input type="text" id="notes" placeholder="Notes" />
         <button type="submit">Add</button>
       </form>
     </section>
 
     <section id="summary">
       <h2>Summary</h2>
-      <div class="summary-cards">
-        <div class="card" id="totalPending">Total Pending: ₹0</div>
-        <div class="card" id="totalCleared">Total Cleared: ₹0</div>
-        <div class="card" id="totalEntries">Total Entries: 0</div>
+      <div class="cards">
+        <div class="card"><h3>Total Pending</h3><p id="totalPending">₹0</p></div>
+        <div class="card"><h3>Total Cleared</h3><p id="totalCleared">₹0</p></div>
+        <div class="card"><h3>This Month</h3><p id="totalThisMonth">0</p></div>
       </div>
     </section>
 
-    <section id="reportTable">
+    <section id="reportSection">
       <h2>Your Reports</h2>
+
+      <div class="filters">
+        <input type="text" id="filterAgency" placeholder="Filter by Agency" />
+        <input type="text" id="filterMovie" placeholder="Filter by Movie" />
+        <select id="filterStatus">
+          <option value="All">All</option>
+          <option value="Pending">Pending</option>
+          <option value="Cleared">Cleared</option>
+        </select>
+        <button id="applyFilters">Apply</button>
+        <button id="clearFilters">Clear</button>
+        <button id="exportPDF">Export PDF</button>
+      </div>
+
       <table>
         <thead>
           <tr>
@@ -55,37 +70,12 @@
             <th>Status</th>
             <th>Date</th>
             <th>Notes</th>
-            <th>Action</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="reportBody"></tbody>
       </table>
-      <button id="exportPDF">Export PDF</button>
     </section>
   </main>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-  <!-- Firebase Configuration -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
-      authDomain: "vadisi-reports.firebaseapp.com",
-      projectId: "vadisi-reports",
-      storageBucket: "vadisi-reports.firebasestorage.app",
-      messagingSenderId: "574994089915",
-      appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-  </script>
-
-  <!-- App Logic -->
-  <script src="ui.js"></script>
 </body>
 </html>

@@ -1,85 +1,694 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Telugu Swaggers Reports</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Telugu Swaggers — Reports</title>
+
+  <!-- Small, clean Google font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------- Theme & layout ---------- */
+    :root{
+      --bg:#f3f6f9;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#f5c335; /* subtle yellow accent */
+      --accent-strong:#e0ac1a;
+      --primary:#0f1724; /* headings / text */
+      --danger:#e74c3c;
+      --radius:12px;
+      --gap:16px;
+      --maxw:1200px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--primary)}
+    .wrap{max-width:var(--maxw);margin:20px auto;padding:18px}
+
+    /* header */
+    header.appbar{
+      display:flex;align-items:center;justify-content:space-between;background:var(--card);
+      padding:12px 18px;border-radius:12px;box-shadow:0 6px 18px rgba(12,15,20,0.04);
+    }
+    .brand{display:flex;flex-direction:column}
+    .brand h1{margin:0;font-size:20px;letter-spacing:0.2px}
+    .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+
+    .auth-row{display:flex;gap:10px;align-items:center}
+    .btn{background:transparent;border:1px solid rgba(15,23,36,0.06);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn.accent{background:var(--accent);border-color:var(--accent-strong);color:#101010}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* main grid */
+    .main{display:grid;grid-template-columns:1fr 300px;gap:var(--gap);margin-top:18px}
+    .left{display:flex;flex-direction:column;gap:var(--gap)}
+    .right{width:300px;min-width:220px}
+
+    /* card */
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 20px rgba(12,15,20,0.04)}
+    .card h2{margin:0 0 10px;font-size:16px}
+
+    /* add form */
+    .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .form-grid input,.form-grid select,.form-grid textarea{padding:10px;border-radius:8px;border:1px solid #e6e9ee;font-size:14px;background:#fff}
+    .form-grid textarea{grid-column:span 3;min-height:72px;resize:vertical}
+    .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* summary cards */
+    .summary{display:flex;gap:12px;flex-wrap:wrap}
+    .stat{flex:1;min-width:160px;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fff);box-shadow:0 2px 8px rgba(12,15,20,0.03)}
+    .stat .label{font-size:13px;color:var(--muted)}
+    .stat .val{font-weight:700;font-size:20px;margin-top:6px}
+
+    /* filters */
+    .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .filters input,.filters select{padding:8px;border-radius:8px;border:1px solid #e6e9ee;background:#fff}
+
+    /* table */
+    .table-wrap{overflow:auto;margin-top:8px}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:left;font-size:14px;vertical-align:middle}
+    th{background:#fbfdff;font-weight:700;color:var(--muted)}
+    .link-cell a{color:var(--primary);text-decoration:none}
+    .actions-inline{display:flex;gap:6px;align-items:center}
+    .icon{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:6px}
+    .icon.yellow{background:var(--accent);color:#111}
+    .status-paid{color:green;font-weight:700}
+    .status-pending{color:orange;font-weight:700}
+
+    /* agencies pane */
+    .agencies{display:flex;flex-direction:column;gap:8px}
+    .agencies h3{margin:0;font-size:14px}
+    .agency-item{display:flex;justify-content:space-between;padding:8px;border-radius:8px;background:#fbfbfb;border:1px solid #f1f3f5;font-size:13px}
+
+    /* pending highlight */
+    .reminder{box-shadow:inset 6px 0 0 0 rgba(224,76,52,0.08)}
+
+    /* responsive */
+    @media (max-width:1060px){
+      .main{grid-template-columns:1fr}
+      .right{width:auto}
+      .form-grid{grid-template-columns:repeat(2,1fr)}
+    }
+
+    /* dark mode override (toggle class on body) */
+    body.dark{
+      --bg:#0b1220;--card:#071226;color:#e6eef8;--muted:#9fb1c9;
+      background:#071226;
+    }
+    body.dark .card{background:#081426;box-shadow:none}
+    body.dark th{background:#071226;color:var(--muted)}
+    body.dark .agency-item{background:#0b1626;border-color:#0e253b}
+    /* subtle accent change for dark mode */
+    body.dark .icon.yellow{background:#f5c335;color:#111}
+  </style>
 </head>
-
 <body>
-  <header>
-    <h1>🎬 Telugu Swaggers Reports</h1>
-    <div class="auth-buttons">
-      <button id="loginBtn">Sign in with Google</button>
-      <button id="logoutBtn" style="display:none;">Logout</button>
-      <button id="themeToggle">🌓</button>
+  <div class="wrap">
+    <header class="appbar card">
+      <div class="brand">
+        <h1>Telugu Swaggers</h1>
+        <p class="small muted">Promotions & payments dashboard</p>
+      </div>
+
+      <div class="auth-row">
+        <div id="userInfo" class="small muted">Not signed in</div>
+        <button id="themeBtn" class="btn" title="Toggle theme">🌓</button>
+        <button id="loginBtn" class="btn accent">Sign in</button>
+        <button id="logoutBtn" class="btn" hidden>Logout</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="left">
+        <!-- Add Report -->
+        <section class="card">
+          <h2>Add report</h2>
+          <form id="reportForm" class="form-grid">
+            <input id="link" type="url" placeholder="Insta/X Link (https://...)" required />
+            <input id="agency" type="text" placeholder="Agency" list="agencyList" required />
+            <input id="movie" type="text" placeholder="Movie" list="movieList" required />
+            <input id="amount" type="number" placeholder="Amount (₹)" value="1200" />
+            <select id="status">
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+            </select>
+            <input id="date" type="date" />
+            <textarea id="notes" placeholder="Notes"></textarea>
+
+            <div class="form-actions" style="grid-column:1/4">
+              <div style="margin-right:auto" class="muted">Date defaults to today when left blank • Notes optional</div>
+              <button id="addBtn" class="btn accent" type="submit">Add</button>
+              <button id="clearBtn" class="btn" type="button">Clear</button>
+              <button id="exportPdf" class="btn" type="button">Export PDF</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Summary -->
+        <section class="card">
+          <h2>Summary</h2>
+          <div class="summary">
+            <div class="stat">
+              <div class="label muted">Total pending amount</div>
+              <div id="sumPending" class="val">₹0</div>
+            </div>
+            <div class="stat">
+              <div class="label muted">Total cleared amount</div>
+              <div id="sumPaid" class="val">₹0</div>
+            </div>
+            <div class="stat">
+              <div class="label muted">Entries this month</div>
+              <div id="sumThisMonth" class="val">0</div>
+            </div>
+            <div class="stat">
+              <div class="label muted">Top agency</div>
+              <div id="topAgency" class="val">—</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:180px" class="muted small">
+              <strong>Pending (last 3 months)</strong>
+              <ul id="pendingByMonth" style="margin-top:8px"></ul>
+            </div>
+            <div style="flex:1;min-width:180px" class="muted small">
+              <strong>Top 5 agencies (pending)</strong>
+              <ol id="pendingByAgency" style="margin-top:8px"></ol>
+            </div>
+            <div style="flex:1;min-width:180px" class="muted small">
+              <strong>Top 5 movies (pending)</strong>
+              <ol id="pendingByMovie" style="margin-top:8px"></ol>
+            </div>
+          </div>
+        </section>
+
+        <!-- Reports (filters + table) -->
+        <section class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Your reports</h2>
+            <div class="muted small">Private — visible only to you</div>
+          </div>
+
+          <div style="margin-top:10px" class="filters">
+            <input id="search" placeholder="Search link / agency / movie" style="flex:1" />
+            <select id="filterStatus" style="width:140px">
+              <option value="All">All status</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+            </select>
+            <input id="fromDate" type="date" style="width:160px" />
+            <input id="toDate" type="date" style="width:160px" />
+            <select id="sortBy" style="width:160px">
+              <option value="date_desc">Date ▾</option>
+              <option value="date_asc">Date ▴</option>
+              <option value="amount_desc">Amount ▾</option>
+              <option value="amount_asc">Amount ▴</option>
+            </select>
+            <button id="applyFilters" class="btn">Apply</button>
+            <button id="resetFilters" class="btn">Reset</button>
+            <button id="exportCsv" class="btn">Export CSV</button>
+          </div>
+
+          <div class="table-wrap" style="margin-top:12px">
+            <table id="reportsTable">
+              <thead>
+                <tr>
+                  <th>Link</th>
+                  <th>Agency</th>
+                  <th>Movie</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Notes</th>
+                  <th style="width:100px">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reportsBody">
+                <tr><td colspan="8" class="muted">Sign in to view your reports</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- agencies pane -->
+      <aside class="right">
+        <div class="card agencies">
+          <h3>Agencies</h3>
+          <div id="agencyPane" class="agency-list muted">No agencies yet</div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card">
+          <h3>Quick actions</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <button id="showReminders" class="btn">Show reminders (30+ days)</button>
+            <button id="clearLocal" class="btn">Clear local suggestions</button>
+          </div>
+        </div>
+      </aside>
     </div>
-  </header>
+  </div>
 
-  <section class="summary">
-    <div class="card">
-      <h3>Total Pending</h3>
-      <p id="totalPending">₹0</p>
-    </div>
-    <div class="card">
-      <h3>Total Cleared</h3>
-      <p id="totalCleared">₹0</p>
-    </div>
-    <div class="card">
-      <h3>Total Entries</h3>
-      <p id="totalEntries">0</p>
-    </div>
-  </section>
+  <!-- datalists for autosuggest (kept at bottom) -->
+  <datalist id="agencyList"></datalist>
+  <datalist id="movieList"></datalist>
 
-  <section class="form-section">
-    <h2>Add Report</h2>
-    <form id="reportForm">
-      <input type="text" id="link" placeholder="Instagram Post Link" required />
-      <input type="text" id="agency" placeholder="Agency Name" required />
-      <input type="text" id="movie" placeholder="Movie Name" required />
-      <input type="number" id="amount" placeholder="Amount (default 1200)" value="1200" />
-      <select id="status" required>
-        <option value="Pending">Pending</option>
-        <option value="Cleared">Cleared</option>
-      </select>
-      <input type="date" id="date" />
-      <input type="text" id="notes" placeholder="Notes (optional)" />
-      <button type="submit">Add Report</button>
-    </form>
-  </section>
+  <!-- Firebase compat JS (global firebase) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-  <section class="table-section">
-    <h2>Reports</h2>
-    <div class="table-controls">
-      <button id="exportPDF">Export PDF</button>
-    </div>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Link</th>
-          <th>Agency</th>
-          <th>Movie</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th>Notes</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="reportBody"></tbody>
-    </table>
-  </section>
+  <script>
+  /* ===========================
+     Single-file UI + Firebase
+     - Keeps Firebase config unchanged
+     - Uses per-user subcollection: users/{uid}/reports
+     - Inline edit, filters, CSV/PDF export, autosuggest, reminders
+     =========================== */
 
-  <footer>
-    <p>© Telugu Swaggers | Personal Dashboard</p>
-  </footer>
+  // ---------- FIREBASE CONFIG ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
+    authDomain: "vadisi-reports.firebaseapp.com",
+    projectId: "vadisi-reports",
+    storageBucket: "vadisi-reports.firebasestorage.app",
+    messagingSenderId: "574994089915",
+    appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  <script src="ui.js"></script>
+  // ---------- DOM ----------
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userInfo = document.getElementById('userInfo');
+  const themeBtn = document.getElementById('themeBtn');
+
+  const reportForm = document.getElementById('reportForm');
+  const linkInput = document.getElementById('link');
+  const agencyInput = document.getElementById('agency');
+  const movieInput = document.getElementById('movie');
+  const amountInput = document.getElementById('amount');
+  const statusInput = document.getElementById('status');
+  const dateInput = document.getElementById('date');
+  const notesInput = document.getElementById('notes');
+  const clearBtn = document.getElementById('clearBtn');
+  const exportPdfBtn = document.getElementById('exportPdf');
+
+  const sumPending = document.getElementById('sumPending');
+  const sumPaid = document.getElementById('sumPaid');
+  const sumThisMonth = document.getElementById('sumThisMonth');
+  const topAgencyEl = document.getElementById('topAgency');
+  const pendingByMonthEl = document.getElementById('pendingByMonth');
+  const pendingByAgencyEl = document.getElementById('pendingByAgency');
+  const pendingByMovieEl = document.getElementById('pendingByMovie');
+
+  const searchInput = document.getElementById('search');
+  const filterStatus = document.getElementById('filterStatus');
+  const fromDate = document.getElementById('fromDate');
+  const toDate = document.getElementById('toDate');
+  const sortBy = document.getElementById('sortBy');
+  const applyFilters = document.getElementById('applyFilters');
+  const resetFilters = document.getElementById('resetFilters');
+  const exportCsvBtn = document.getElementById('exportCsv');
+
+  const reportsBody = document.getElementById('reportsBody');
+  const agencyPane = document.getElementById('agencyPane');
+  const agencyList = document.getElementById('agencyList');
+  const movieList = document.getElementById('movieList');
+
+  const showRemindersBtn = document.getElementById('showReminders');
+  const clearLocalBtn = document.getElementById('clearLocal');
+
+  // ---------- State ----------
+  let uid = null;
+  let realtimeUnsub = null;
+  let cachedReports = []; // array of {id, ...data}
+  let localAgencies = JSON.parse(localStorage.getItem('v_agencies')||'[]');
+  let localMovies = JSON.parse(localStorage.getItem('v_movies')||'[]');
+
+  // default date fill
+  dateInput.value = new Date().toISOString().slice(0,10);
+
+  // ---------- Helpers ----------
+  function show(msg){ console.log(msg); /* quick console trace */ }
+  function toast(msg){ /* minimal visual feedback via console (page has no toast element) */ console.log('TOAST:',msg); }
+  function formatDDMON(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    if(isNaN(d)) return iso;
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mon = d.toLocaleString('en-US',{month:'short'}).toUpperCase();
+    const yyyy = d.getFullYear();
+    return `${dd}-${mon}-${yyyy}`;
+  }
+  function parseDateInput(val){
+    if(!val) return new Date().toISOString();
+    // val is yyyy-mm-dd
+    return new Date(val + "T00:00:00").toISOString();
+  }
+
+  // ---------- Auth ----------
+  loginBtn.addEventListener('click', async ()=>{
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try{
+      await auth.signInWithPopup(provider);
+    }catch(e){
+      alert('Sign-in failed: ' + (e.message||e));
+      console.error(e);
+    }
+  });
+  logoutBtn.addEventListener('click', ()=> auth.signOut());
+
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      uid = user.uid;
+      userInfo.textContent = user.email;
+      loginBtn.hidden = true;
+      logoutBtn.hidden = false;
+      startRealtime();
+      loadLocalSuggestions();
+    } else {
+      uid = null;
+      userInfo.textContent = 'Not signed in';
+      loginBtn.hidden = false;
+      logoutBtn.hidden = true;
+      stopRealtime();
+      reportsBody.innerHTML = '<tr><td colspan="8" class="muted">Sign in to view your reports</td></tr>';
+      clearSummary();
+    }
+  });
+
+  // ---------- Realtime listener ----------
+  function startRealtime(){
+    if(!uid) return;
+    if(realtimeUnsub) realtimeUnsub();
+    const col = db.collection('users').doc(uid).collection('reports');
+    const q = col.orderBy('date','desc');
+    realtimeUnsub = q.onSnapshot(snap=>{
+      const arr = [];
+      snap.forEach(d=> arr.push({ id:d.id, ...d.data() }));
+      cachedReports = arr;
+      renderReports();
+      summarizeAll();
+      saveLocalSuggestionsFromCached();
+    }, err=>{
+      console.error('realtime err',err);
+    });
+  }
+  function stopRealtime(){ if(realtimeUnsub) { realtimeUnsub(); realtimeUnsub = null; cachedReports = []; } }
+
+  // ---------- Add report ----------
+  reportForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!uid) return alert('Sign in first');
+    const doc = {
+      link: linkInput.value.trim(),
+      agency: agencyInput.value.trim(),
+      movie: movieInput.value.trim(),
+      amount: Number(amountInput.value) || 1200,
+      status: statusInput.value || 'Pending',
+      date: dateInput.value ? parseDateInput(dateInput.value) : new Date().toISOString(),
+      notes: notesInput.value.trim() || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    try{
+      await db.collection('users').doc(uid).collection('reports').add(doc);
+      // local autosuggest
+      addLocalAgency(doc.agency); addLocalMovie(doc.movie);
+      reportForm.reset();
+      amountInput.value = 1200;
+      dateInput.value = new Date().toISOString().slice(0,10);
+      toast('Added');
+    }catch(e){ console.error(e); alert('Add failed: '+e.message); }
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    reportForm.reset();
+    amountInput.value = 1200;
+    dateInput.value = new Date().toISOString().slice(0,10);
+  });
+
+  // ---------- Render & actions ----------
+  function renderReports(){
+    const visible = applyFilters(cachedReports);
+    if(!visible.length){
+      reportsBody.innerHTML = '<tr><td colspan="8" class="muted">No records</td></tr>';
+      return;
+    }
+    reportsBody.innerHTML = visible.map(r=>{
+      const displayDate = formatDDMON(r.date);
+      const isPending = (String(r.status||'').toLowerCase()!=='paid');
+      const ageDays = Math.floor((Date.now() - new Date(r.date).getTime())/(1000*60*60*24));
+      const reminderClass = (isPending && ageDays>30) ? 'reminder' : '';
+      return `<tr data-id="${r.id}" class="${reminderClass}">
+        <td class="link-cell"><a href="${escapeHtml(r.link||'')}" target="_blank">${escapeHtml(r.link||'')}</a></td>
+        <td class="agency-cell" data-field="agency">${escapeHtml(r.agency||'')}</td>
+        <td class="movie-cell" data-field="movie">${escapeHtml(r.movie||'')}</td>
+        <td class="amount-cell" data-field="amount">₹${Number(r.amount)||0}</td>
+        <td class="status-cell" data-field="status">${escapeHtml(r.status||'')}</td>
+        <td class="date-cell" data-field="date">${displayDate}</td>
+        <td class="notes-cell" data-field="notes">${escapeHtml(r.notes||'')}</td>
+        <td class="actions-inline">
+          <button class="icon yellow edit-inline" title="Edit">✎</button>
+          <button class="icon dup-inline" title="Duplicate">⎘</button>
+          <button class="icon" style="color:var(--danger)" title="Delete">🗑</button>
+        </td>
+      </tr>`;
+    }).join('');
+    attachRowListeners();
+  }
+
+  function attachRowListeners(){
+    reportsBody.querySelectorAll('tr[data-id]').forEach(tr=>{
+      const id = tr.dataset.id;
+      const editBtn = tr.querySelector('.edit-inline');
+      const dupBtn = tr.querySelector('.dup-inline');
+      const delBtn = tr.querySelector('.icon[title="Delete"]');
+
+      editBtn.onclick = ()=> enableInlineEdit(tr, id);
+      dupBtn.onclick = async ()=>{
+        const r = cachedReports.find(x=> x.id===id);
+        if(!r) return;
+        const dup = {...r, date: new Date().toISOString(), createdAt: firebase.firestore.FieldValue.serverTimestamp()};
+        delete dup.id;
+        try{ await db.collection('users').doc(uid).collection('reports').add(dup); toast('Duplicated'); }
+        catch(e){ console.error(e); toast('Duplicate failed'); }
+      };
+      delBtn.onclick = async ()=>{
+        if(!confirm('Delete this report?')) return;
+        try{ await db.collection('users').doc(uid).collection('reports').doc(id).delete(); toast('Deleted'); }
+        catch(e){ console.error(e); toast('Delete failed'); }
+      };
+    });
+  }
+
+  // Inline edit: make contenteditable, save on blur
+  function enableInlineEdit(tr, id){
+    const editableCells = tr.querySelectorAll('td[data-field]');
+    editableCells.forEach(cell=>{
+      const field = cell.getAttribute('data-field');
+      cell.setAttribute('contenteditable','true');
+      cell.focus();
+      cell.addEventListener('blur', async function onBlur(){
+        cell.removeEventListener('blur', onBlur);
+        cell.removeAttribute('contenteditable');
+        let newVal = cell.innerText.trim();
+        const update = {};
+        if(field==='amount') newVal = Number(newVal.replace(/[^\d.-]/g,''))||0;
+        if(field==='date'){
+          // support DD-MON-YYYY or yyyy-mm-dd
+          const maybe = Date.parse(newVal);
+          if(!isNaN(maybe)) newVal = new Date(maybe).toISOString();
+          else {
+            // try to parse display format like 12-OCT-2025
+            const parts = newVal.split('-');
+            if(parts.length===3){
+              const dd = parts[0], mon = parts[1], yy = parts[2];
+              const parsed = Date.parse(`${mon} ${dd} ${yy}`);
+              if(!isNaN(parsed)) newVal = new Date(parsed).toISOString();
+            }
+          }
+        }
+        update[field] = newVal;
+        try{
+          await db.collection('users').doc(uid).collection('reports').doc(id).update(update);
+          // update local cached copy
+          const idx = cachedReports.findIndex(x=> x.id===id);
+          if(idx>-1) cachedReports[idx] = {...cachedReports[idx], ...update};
+          renderReports();
+          toast('Saved');
+        }catch(e){ console.error(e); toast('Save failed'); }
+      });
+    });
+    // also offer quick save icon
+    tr.querySelector('.edit-inline').title = 'Edit (saved on blur)';
+  }
+
+  // ---------- Filters ----------
+  function applyFilters(list){
+    let out = Array.from(list);
+    const s = (searchInput.value||'').toLowerCase().trim();
+    const st = filterStatus.value;
+    const fFrom = fromDate.value;
+    const fTo = toDate.value;
+    const sb = sortBy.value;
+
+    if(s) out = out.filter(r => (r.link||'').toLowerCase().includes(s) || (r.agency||'').toLowerCase().includes(s) || (r.movie||'').toLowerCase().includes(s));
+    if(st && st!=='All') out = out.filter(r => (r.status||'')===st);
+    if(fFrom) out = out.filter(r => (r.date||'') >= parseDateInput(fFrom));
+    if(fTo) out = out.filter(r => (r.date||'') <= parseDateInput(fTo));
+
+    out.sort((a,b)=>{
+      switch(sb){
+        case 'date_asc': return (a.date||'').localeCompare(b.date||'');
+        case 'date_desc': return (b.date||'').localeCompare(a.date||'');
+        case 'amount_asc': return (Number(a.amount)||0) - (Number(b.amount)||0);
+        case 'amount_desc': return (Number(b.amount)||0) - (Number(a.amount)||0);
+        default: return 0;
+      }
+    });
+
+    return out;
+  }
+
+  applyFilters.addEventListener('click', ()=> renderReports());
+  resetFilters.addEventListener('click', ()=>{
+    searchInput.value=''; filterStatus.value='All'; fromDate.value=''; toDate.value=''; sortBy.value='date_desc';
+    renderReports();
+  });
+
+  // ---------- Summary & analytics ----------
+  function summarizeAll(){
+    const list = cachedReports || [];
+    const totalPending = list.filter(r=> (r.status||'').toLowerCase()!=='paid').reduce((s,r)=> s + (Number(r.amount)||0),0);
+    const totalPaid = list.filter(r=> (r.status||'').toLowerCase()==='paid').reduce((s,r)=> s + (Number(r.amount)||0),0);
+    sumPending.textContent = `₹${totalPending}`;
+    sumPaid.textContent = `₹${totalPaid}`;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const totalThisMonth = list.filter(r => (r.date||'') >= monthStart).length;
+    sumThisMonth.textContent = totalThisMonth;
+
+    // top agency by pending count
+    const agCount = {};
+    list.forEach(r => { agCount[r.agency] = (agCount[r.agency]||0) + (Number(r.amount)||0); });
+    const top = Object.keys(agCount).sort((a,b)=> (agCount[b]||0) - (agCount[a]||0))[0] || '—';
+    topAgencyEl.textContent = top;
+
+    // pending by month last 3 months
+    const months = [2,1,0].map(off=>{
+      const d = new Date(now.getFullYear(), now.getMonth() - off, 1);
+      return { label: d.toLocaleString('en-US',{month:'short',year:'numeric'}), year:d.getFullYear(), month:d.getMonth()+1 };
+    });
+    pendingByMonthEl.innerHTML = months.map(m=>{
+      const sum = list.filter(r=>{
+        const dt = new Date(r.date||'');
+        return (dt.getFullYear()===m.year && (dt.getMonth()+1)===m.month && (r.status||'').toLowerCase()!=='paid');
+      }).reduce((s,r)=> s + (Number(r.amount)||0), 0);
+      return `<li>${m.label}: ₹${sum}</li>`;
+    }).join('');
+
+    // pending top 5 by agency
+    const agencyPending = {};
+    list.filter(r=> (r.status||'').toLowerCase()!=='paid').forEach(r=> agencyPending[r.agency] = (agencyPending[r.agency]||0) + (Number(r.amount)||0));
+    pendingByAgencyEl.innerHTML = Object.entries(agencyPending).sort((a,b)=> b[1]-a[1]).slice(0,5).map(x=> `<li>${escapeHtml(x[0]||'—')} — ₹${x[1]}</li>`).join('') || '<li>—</li>';
+
+    // pending top5 by movie
+    const moviePending = {};
+    list.filter(r=> (r.status||'').toLowerCase()!=='paid').forEach(r=> moviePending[r.movie] = (moviePending[r.movie]||0) + (Number(r.amount)||0));
+    pendingByMovieEl.innerHTML = Object.entries(moviePending).sort((a,b)=> b[1]-a[1]).slice(0,5).map(x=> `<li>${escapeHtml(x[0]||'—')} — ₹${x[1]}</li>`).join('') || '<li>—</li>';
+
+    // update agencies pane
+    updateAgencyPane(list);
+  }
+
+  function updateAgencyPane(list){
+    const m = {};
+    list.forEach(r => { if(r.agency) m[r.agency] = (m[r.agency]||0) + (Number(r.amount)||0); });
+    agencyPane.innerHTML = Object.entries(m).sort((a,b)=> b[1]-a[1]).map(x=> `<div class="agency-item"><div>${escapeHtml(x[0])}</div><div class="muted">₹${x[1]}</div></div>`).join('') || '<div class="muted">No agencies</div>';
+  }
+
+  function clearSummary(){
+    sumPending.textContent = '₹0'; sumPaid.textContent = '₹0'; sumThisMonth.textContent = '0'; topAgencyEl.textContent = '—';
+    pendingByMonthEl.innerHTML = ''; pendingByAgencyEl.innerHTML = ''; pendingByMovieEl.innerHTML = '';
+    agencyPane.innerHTML = '<div class="muted">No agencies</div>';
+  }
+
+  // ---------- Export CSV ----------
+  exportCsvBtn.addEventListener('click', ()=>{
+    const list = applyFilters(cachedReports);
+    if(!list.length) return alert('No rows to export');
+    const rows = [['Link','Agency','Movie','Amount','Status','Date','Notes'], ...list.map(r=> [r.link||'', r.agency||'', r.movie||'', r.amount||'', r.status||'', formatDDMON(r.date||''), r.notes||''])];
+    const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vadisi_reports_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    toast('CSV exported');
+  });
+
+  // ---------- Export PDF (print view) ----------
+  exportPdfBtn.addEventListener('click', ()=>{
+    const list = applyFilters(cachedReports);
+    if(!list.length) return alert('No rows to export');
+    const printable = `
+      <html><head><title>Telugu Swaggers</title>
+      <style>body{font-family:Arial;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background:#f4f4f4}</style>
+      </head><body>
+      <h2>Telugu Swaggers — Export</h2>
+      <table><thead><tr><th>Link</th><th>Agency</th><th>Movie</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>${list.map(r=> `<tr><td>${escapeHtml(r.link||'')}</td><td>${escapeHtml(r.agency||'')}</td><td>${escapeHtml(r.movie||'')}</td><td>₹${r.amount||0}</td><td>${escapeHtml(r.status||'')}</td><td>${formatDDMON(r.date)}</td></tr>`).join('')}</tbody></table>
+      </body></html>`;
+    const w = window.open('','_blank'); w.document.write(printable); w.document.close(); setTimeout(()=> w.print(),600);
+  });
+
+  // ---------- Utilities: local suggestions ----------
+  function addLocalAgency(name){ if(!name) return; if(!localAgencies.includes(name)){ localAgencies.unshift(name); if(localAgencies.length>80) localAgencies.pop(); localStorage.setItem('v_agencies', JSON.stringify(localAgencies)); loadLocalSuggestions(); } }
+  function addLocalMovie(name){ if(!name) return; if(!localMovies.includes(name)){ localMovies.unshift(name); if(localMovies.length>80) localMovies.pop(); localStorage.setItem('v_movies', JSON.stringify(localMovies)); loadLocalSuggestions(); } }
+  function loadLocalSuggestions(){ agencyList.innerHTML = localAgencies.map(a=> `<option value="${escapeHtml(a)}">`).join(''); movieList.innerHTML = localMovies.map(m=> `<option value="${escapeHtml(m)}">`).join(''); /* left pane list */ agencyPane.innerHTML = localAgencies.length ? localAgencies.slice(0,30).map(a=> `<div class="agency-item"><div>${escapeHtml(a)}</div><div class="muted">—</div></div>`).join('') : '<div class="muted">No suggestions</div>'; }
+  function saveLocalSuggestionsFromCached(){
+    // add agencies/movies seen in cachedReports
+    cachedReports.forEach(r=>{ if(r.agency) addLocalAgency(r.agency); if(r.movie) addLocalMovie(r.movie); });
+  }
+  clearLocalBtn.addEventListener('click', ()=>{ localAgencies=[]; localMovies=[]; localStorage.removeItem('v_agencies'); localStorage.removeItem('v_movies'); loadLocalSuggestions(); toast('Cleared local suggestions'); });
+
+  // ---------- Reminders ----------
+  showRemindersBtn.addEventListener('click', ()=>{
+    const reminders = cachedReports.filter(r=> (String(r.status||'').toLowerCase()!=='paid') && ((Date.now() - new Date(r.date).getTime())/(1000*60*60*24) > 30));
+    if(!reminders.length) return alert('No reminders');
+    // scroll to first reminder row
+    const row = Array.from(document.querySelectorAll('#reportsBody tr')).find(tr => reminders.some(r=> r.id === tr.dataset.id));
+    if(row) row.scrollIntoView({behavior:'smooth', block:'center'});
+    toast(`${reminders.length} pending reminders`);
+  });
+
+  // ---------- small helpers ----------
+  function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+
+  // ---------- theme toggle ----------
+  themeBtn.addEventListener('click', ()=>{
+    document.body.classList.toggle('dark');
+    localStorage.setItem('v_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+  });
+  if(localStorage.getItem('v_theme') === 'dark') document.body.classList.add('dark');
+
+  // ---------- initial load from local suggestions ----------
+  loadLocalSuggestions();
+
+  // expose debug helpers
+  window.vadisi = { cachedReports, renderReports, summarizeAll, startRealtime, stopRealtime };
+
+  // ---------- final: small safety net to ensure UI shows data when realtime already running ----------
+  setTimeout(()=>{ if(uid && !cachedReports.length) { /* nothing */ } }, 1000);
+  </script>
 </body>
 </html>

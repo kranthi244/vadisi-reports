@@ -1,69 +1,114 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js";
+// --- Load saved reports from localStorage ---
+let reports = JSON.parse(localStorage.getItem("reports")) || [];
 
-// REPLACE THIS with your firebaseConfig
-const firebaseConfig = {
-  apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
-  authDomain: "vadisi-reports.firebaseapp.com",
-  projectId: "vadisi-reports",
-  storageBucket: "vadisi-reports.firebasestorage.app",
-  messagingSenderId: "574994089915",
-  appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
-};
+// --- DOM references ---
+const reportForm = document.getElementById("reportForm");
+const reportBody = document.getElementById("reportBody");
+const filterAgency = document.getElementById("filterAgency");
+const filterMovie = document.getElementById("filterMovie");
+const filterStatus = document.getElementById("filterStatus");
+const fromDate = document.getElementById("fromDate");
+const toDate = document.getElementById("toDate");
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// --- Display Reports ---
+function displayReports(data = reports) {
+  reportBody.innerHTML = "";
 
-const provider = new GoogleAuthProvider();
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+  if (data.length === 0) {
+    reportBody.innerHTML = `<tr><td colspan="6">No reports found</td></tr>`;
+    return;
+  }
 
-loginBtn.onclick = async () => await signInWithPopup(auth, provider);
-logoutBtn.onclick = async () => await signOut(auth);
-
-onAuthStateChanged(auth, (user) => {
-  loginBtn.hidden = !!user;
-  logoutBtn.hidden = !user;
-  document.getElementById("reportForm").style.display = user ? "block" : "none";
-});
-
-const form = document.getElementById("reportForm");
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const data = {
-    link: form.link.value,
-    agency: form.agency.value,
-    movie: form.movie.value,
-    amount: parseFloat(form.amount.value),
-    status: form.status.value,
-    date: form.date.value
-  };
-  await addDoc(collection(db, "reports"), data);
-  alert("Report added!");
-  form.reset();
-  loadReports();
-});
-
-async function loadReports(filters = {}) {
-  let q = collection(db, "reports");
-  let results = await getDocs(q);
-  const tbody = document.getElementById("reportBody");
-  tbody.innerHTML = "";
-  results.forEach(doc => {
-    const d = doc.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><a href="${d.link}" target="_blank">Link</a></td>
-      <td>${d.agency}</td>
-      <td>${d.movie}</td>
-      <td>${d.amount}</td>
-      <td>${d.status}</td>
-      <td>${d.date}</td>`;
-    tbody.appendChild(tr);
+  data.forEach((r, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><a href="${r.link}" target="_blank">${r.link}</a></td>
+      <td>${r.agency}</td>
+      <td>${r.movie}</td>
+      <td>${r.amount}</td>
+      <td>${r.status}</td>
+      <td>${r.date}</td>
+    `;
+    reportBody.appendChild(row);
   });
 }
 
-loadReports();
+// --- Add Report ---
+reportForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const newReport = {
+    link: document.getElementById("link").value.trim(),
+    agency: document.getElementById("agency").value.trim(),
+    movie: document.getElementById("movie").value.trim(),
+    amount: document.getElementById("amount").value.trim(),
+    status: document.getElementById("status").value,
+    date: document.getElementById("date").value,
+  };
+
+  reports.push(newReport);
+  localStorage.setItem("reports", JSON.stringify(reports));
+
+  reportForm.reset();
+  displayReports();
+});
+
+// --- Filter Reports ---
+document.getElementById("applyFilters").addEventListener("click", () => {
+  let filtered = [...reports];
+
+  const agencyVal = filterAgency.value.toLowerCase();
+  const movieVal = filterMovie.value.toLowerCase();
+  const statusVal = filterStatus.value;
+  const fromVal = fromDate.value;
+  const toVal = toDate.value;
+
+  if (agencyVal) {
+    filtered = filtered.filter(r => r.agency.toLowerCase().includes(agencyVal));
+  }
+  if (movieVal) {
+    filtered = filtered.filter(r => r.movie.toLowerCase().includes(movieVal));
+  }
+  if (statusVal) {
+    filtered = filtered.filter(r => r.status === statusVal);
+  }
+  if (fromVal) {
+    filtered = filtered.filter(r => r.date >= fromVal);
+  }
+  if (toVal) {
+    filtered = filtered.filter(r => r.date <= toVal);
+  }
+
+  displayReports(filtered);
+});
+
+// --- Clear Filters ---
+document.getElementById("clearFilters").addEventListener("click", () => {
+  filterAgency.value = "";
+  filterMovie.value = "";
+  filterStatus.value = "";
+  fromDate.value = "";
+  toDate.value = "";
+  displayReports();
+});
+
+// --- Export to CSV ---
+document.getElementById("exportCSV").addEventListener("click", () => {
+  if (reports.length === 0) return alert("No reports to export!");
+
+  const csvContent = [
+    ["Link", "Agency", "Movie", "Amount", "Status", "Date"],
+    ...reports.map(r => [r.link, r.agency, r.movie, r.amount, r.status, r.date])
+  ]
+  .map(e => e.join(","))
+  .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "vadisi_reports.csv";
+  link.click();
+});
+
+// --- Initial render ---
+displayReports();

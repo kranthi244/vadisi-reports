@@ -8,46 +8,56 @@
   <script type="module" src="ui.js" defer></script>
 </head>
 <body>
-  <header>
-    <h1>Telugu Swaggers</h1>
-    <div class="auth-buttons">
-      <button id="loginBtn">Sign In</button>
-      <button id="logoutBtn" hidden>Logout</button>
-      <button id="darkModeToggle">🌙</button>
+  <header class="navbar">
+    <h1 class="brand">Telugu Swaggers</h1>
+    <div class="nav-actions">
+      <button id="loginBtn" class="btn">Sign In</button>
+      <button id="logoutBtn" class="btn" hidden>Logout</button>
+      <button id="darkModeToggle" class="btn">🌙</button>
     </div>
   </header>
 
-  <main>
-    <section id="addReport">
+  <main class="container">
+    <section class="card">
       <h2>Add Report</h2>
-      <form id="reportForm">
+      <form id="reportForm" class="form-grid">
         <input type="url" id="link" placeholder="Insta/X Link" required />
         <input type="text" id="agency" placeholder="Agency" required />
         <input type="text" id="movie" placeholder="Movie" required />
         <input type="number" id="amount" placeholder="Amount" value="1200" required />
         <select id="status" required>
+          <option value="" disabled selected>Select Status</option>
           <option value="Pending">Pending</option>
           <option value="Cleared">Cleared</option>
         </select>
         <input type="date" id="date" required />
         <input type="text" id="notes" placeholder="Notes" />
-        <button type="submit">Add</button>
+        <button type="submit" class="btn">Add</button>
       </form>
     </section>
 
-    <section id="summary">
+    <section class="card">
       <h2>Summary</h2>
-      <div class="cards">
-        <div class="card"><h3>Total Pending</h3><p id="totalPending">₹0</p></div>
-        <div class="card"><h3>Total Cleared</h3><p id="totalCleared">₹0</p></div>
-        <div class="card"><h3>This Month</h3><p id="totalThisMonth">0</p></div>
+      <div class="summary-cards">
+        <div class="summary-card">
+          <h3>Total Pending</h3>
+          <p id="totalPending">₹0</p>
+        </div>
+        <div class="summary-card">
+          <h3>Total Cleared</h3>
+          <p id="totalCleared">₹0</p>
+        </div>
+        <div class="summary-card">
+          <h3>This Month</h3>
+          <p id="totalThisMonth">0</p>
+        </div>
       </div>
     </section>
 
-    <section id="reportSection">
+    <section class="card">
       <h2>Your Reports</h2>
 
-      <div class="filters">
+      <div class="filter-bar">
         <input type="text" id="filterAgency" placeholder="Filter by Agency" />
         <input type="text" id="filterMovie" placeholder="Filter by Movie" />
         <select id="filterStatus">
@@ -55,12 +65,12 @@
           <option value="Pending">Pending</option>
           <option value="Cleared">Cleared</option>
         </select>
-        <button id="applyFilters">Apply</button>
-        <button id="clearFilters">Clear</button>
-        <button id="exportPDF">Export PDF</button>
+        <button id="applyFilters" class="btn">Apply</button>
+        <button id="clearFilters" class="btn">Clear</button>
+        <button id="exportPDF" class="btn">Export PDF</button>
       </div>
 
-      <table>
+      <table id="reportTable">
         <thead>
           <tr>
             <th>Link</th>
@@ -70,7 +80,7 @@
             <th>Status</th>
             <th>Date</th>
             <th>Notes</th>
-            <th></th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="reportBody"></tbody>

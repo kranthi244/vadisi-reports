@@ -5,68 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vadisi Reports</title>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js" defer></script>
 </head>
 <body>
   <header>
     <h1>Vadisi Reports</h1>
-    <div id="userSection">
-      <span id="userEmail"></span>
-      <button id="signInBtn">Sign In</button>
-      <button id="signOutBtn" style="display: none;">Sign Out</button>
-    </div>
+    <button id="loginBtn">Sign In</button>
+    <button id="logoutBtn" hidden>Logout</button>
   </header>
 
-  <section id="dashboard" class="card">
-    <h2>Summary</h2>
-    <div class="summary-container">
-      <div class="summary-item">Total Promotions: <span id="totalReports">0</span></div>
-      <div class="summary-item">Total Pending: ₹<span id="totalPending">0</span></div>
-      <div class="summary-item">Total Received: ₹<span id="totalPaid">0</span></div>
-      <div class="summary-item">Top Agency: <span id="topAgency">N/A</span></div>
-    </div>
-  </section>
-
-  <section id="addSection" class="card">
+  <section id="addReport">
     <h2>Add Report</h2>
     <form id="reportForm">
       <input type="url" id="link" placeholder="Instagram Link" required />
-      <input type="text" id="agency" placeholder="Agency" list="agencyList" required />
-      <datalist id="agencyList"></datalist>
-      <input type="text" id="movie" placeholder="Movie" list="movieList" required />
-      <datalist id="movieList"></datalist>
-      <input type="number" id="amount" placeholder="Amount (₹)" required />
-      <select id="status">
+      <input type="text" id="agency" placeholder="Agency" required />
+      <input type="text" id="movie" placeholder="Movie" required />
+      <input type="number" id="amount" placeholder="Amount" required />
+      <select id="status" required>
+        <option value="">Select Status</option>
         <option value="Pending">Pending</option>
-        <option value="Paid">Paid</option>
+        <option value="Cleared">Cleared</option>
       </select>
       <input type="date" id="date" />
-      <textarea id="notes" placeholder="Notes (optional)"></textarea>
-      <button type="submit">Add Report</button>
+      <button type="submit">Add</button>
     </form>
   </section>
 
-  <section id="filterSection" class="card">
-    <h2>Filter Reports</h2>
-    <div class="filter-row">
-      <input type="text" id="filterAgency" placeholder="Filter by Agency" />
-      <input type="text" id="filterMovie" placeholder="Filter by Movie" />
-      <select id="filterStatus">
-        <option value="All">All Status</option>
-        <option value="Pending">Pending</option>
-        <option value="Paid">Paid</option>
-      </select>
-      <input type="date" id="fromDate" />
-      <input type="date" id="toDate" />
-      <button id="applyFilter">Apply</button>
-      <button id="clearFilter">Clear</button>
-      <button id="exportCSV">Export CSV</button>
-    </div>
-  </section>
-
-  <section id="reportsSection" class="card">
-    <h2>Reports</h2>
-    <table id="reportsTable">
+  <section id="reportTable">
+    <h2>Your Reports</h2>
+    <table>
       <thead>
         <tr>
           <th>Link</th>
@@ -75,35 +42,11 @@
           <th>Amount</th>
           <th>Status</th>
           <th>Date</th>
-          <th>Notes</th>
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="reportBody"></tbody>
     </table>
   </section>
-
-  <!-- Modal for editing -->
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <h3>Edit Report</h3>
-      <form id="editForm">
-        <input type="url" id="editLink" />
-        <input type="text" id="editAgency" />
-        <input type="text" id="editMovie" />
-        <input type="number" id="editAmount" />
-        <select id="editStatus">
-          <option value="Pending">Pending</option>
-          <option value="Paid">Paid</option>
-        </select>
-        <input type="date" id="editDate" />
-        <textarea id="editNotes"></textarea>
-        <div class="modal-actions">
-          <button type="submit">Save</button>
-          <button type="button" id="cancelEdit">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </body>
 </html>

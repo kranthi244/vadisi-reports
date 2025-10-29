@@ -1,95 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vadisi Reports</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Telugu Swaggers — Reports</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>Vadisi Reports</h1>
-    <div class="auth-buttons">
-      <button id="loginBtn">Sign In</button>
-      <button id="logoutBtn" hidden>Logout</button>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Telugu Swaggers</h1>
+      <div class="muted">Promotions & payments dashboard</div>
+    </div>
+
+    <div class="right-controls">
+      <button id="themeToggle" class="btn yellow ghost">Toggle Theme</button>
+      <span id="userEmail" class="muted small">Not signed in</span>
+      <button id="loginBtn" class="btn yellow">Sign in</button>
+      <button id="logoutBtn" class="btn" hidden>Logout</button>
     </div>
   </header>
 
-  <main>
-    <section id="addReport" class="card">
-      <h2>Add Report</h2>
-      <form id="reportForm">
-        <input type="url" id="link" placeholder="Instagram Link" required>
-        <input type="text" id="agency" placeholder="Agency" required>
-        <input type="text" id="movie" placeholder="Movie" required>
-        <input type="number" id="amount" placeholder="Amount" required>
-        <select id="status" required>
-          <option value="">Select Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Cleared">Cleared</option>
-        </select>
-        <input type="date" id="date">
-        <button type="submit">Add</button>
-      </form>
-    </section>
+  <main class="container">
+    <aside class="left-pane card">
+      <h3>Agencies</h3>
+      <div id="agencyList" class="agency-list">—</div>
+    </aside>
 
-    <section id="filters" class="card">
-      <h2>Filters & Actions</h2>
-      <div class="filter-group">
-        <input type="text" id="filterAgency" placeholder="Filter by Agency">
-        <input type="text" id="filterMovie" placeholder="Filter by Movie">
-        <select id="filterStatus">
-          <option value="All">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Cleared">Cleared</option>
-        </select>
-        <input type="date" id="fromDate">
-        <input type="date" id="toDate">
-        <button id="applyFilters">Apply</button>
-        <button id="clearFilters">Clear</button>
-        <button id="exportCSV">Export CSV</button>
-      </div>
-    </section>
+    <section class="main-column">
+      <!-- Add Report -->
+      <section class="card add-card" id="addCard">
+        <h2>Add report</h2>
+        <form id="reportForm" class="form-grid">
+          <input id="link" type="url" placeholder="Insta/X Link" required />
+          <input id="agency" list="agencyDatalist" type="text" placeholder="Agency" required />
+          <datalist id="agencyDatalist"></datalist>
+          <input id="movie" list="movieDatalist" type="text" placeholder="Movie" required />
+          <datalist id="movieDatalist"></datalist>
+          <input id="amount" type="number" placeholder="Amount (₹)" value="1200" />
+          <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+          </select>
+          <input id="date" type="date" />
+          <textarea id="notes" placeholder="Notes"></textarea>
+          <div class="form-actions">
+            <button id="addBtn" class="btn yellow" type="submit">Add</button>
+            <button id="clearForm" class="btn">Clear</button>
+            <button id="exportPdf" class="btn yellow" type="button">Export PDF</button>
+          </div>
+        </form>
+      </section>
 
-    <section id="reportTable" class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Link</th>
-            <th>Agency</th>
-            <th>Movie</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="reportBody"></tbody>
-      </table>
+      <!-- Summary -->
+      <section class="card summary-card" id="summaryCard">
+        <h2>Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="label">Total Pending Amount</div>
+            <div id="totalPending" class="value">₹0</div>
+          </div>
+
+          <div class="summary-item">
+            <div class="label">Total Cleared Amount</div>
+            <div id="totalPaid" class="value">₹0</div>
+          </div>
+
+          <div class="summary-item">
+            <div class="label">Total Entries This Month</div>
+            <div id="totalThisMonth" class="value">0</div>
+          </div>
+
+          <div class="summary-item">
+            <div class="label">Top Agency</div>
+            <div id="topAgency" class="value">—</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="mini-card">
+            <h4>Pending by month (last 3)</h4>
+            <ul id="pendingByMonth" class="small-list"></ul>
+          </div>
+
+          <div class="mini-card">
+            <h4>Pending by agency (top 5)</h4>
+            <ol id="pendingByAgency" class="small-list"></ol>
+          </div>
+
+          <div class="mini-card">
+            <h4>Pending by movie (top 5)</h4>
+            <ol id="pendingByMovie" class="small-list"></ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filters & Reports -->
+      <section class="card table-card">
+        <div class="table-header">
+          <div class="filters-inline">
+            <input id="filterSearch" placeholder="Search link / agency / movie" />
+            <select id="filterStatus">
+              <option value="All">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+            </select>
+            <input id="fromDate" type="date" />
+            <input id="toDate" type="date" />
+            <select id="sortBy">
+              <option value="date_desc">Date ▾</option>
+              <option value="date_asc">Date ▴</option>
+              <option value="amount_desc">Amount ▾</option>
+              <option value="amount_asc">Amount ▴</option>
+            </select>
+            <button id="applyFilters" class="btn">Apply</button>
+            <button id="resetFilters" class="btn">Reset</button>
+            <button id="exportCSV" class="btn yellow">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="reportsTable">
+            <thead>
+              <tr>
+                <th>Link</th>
+                <th>Agency</th>
+                <th>Movie</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="reportsBody">
+              <tr><td colspan="7" class="muted">Sign in to view your reports</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </section>
   </main>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <div id="toast" class="toast" hidden></div>
 
-  <!-- Firebase Config -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
-      authDomain: "vadisi-reports.firebaseapp.com",
-      projectId: "vadisi-reports",
-      storageBucket: "vadisi-reports.firebasestorage.app",
-      messagingSenderId: "574994089915",
-      appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-  </script>
-
-  <!-- Main App -->
-  <script src="ui.js"></script>
+  <!-- UI JS (modular) -->
+  <script type="module" src="ui.js"></script>
 </body>
 </html>

@@ -1,120 +1,47 @@
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
   margin: 0;
-  background: #f6f6f6;
-  color: #222;
+  padding: 0;
 }
 
 header {
-  background: #111;
+  background: #000;
   color: white;
+  padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
 }
 
 h1 {
   margin: 0;
 }
 
-.card {
+section {
   background: white;
-  margin: 1rem auto;
-  padding: 1rem 2rem;
+  margin: 20px;
+  padding: 20px;
   border-radius: 10px;
-  max-width: 1200px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-input, select, textarea, button {
-  margin: 0.4rem;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-button {
-  cursor: pointer;
-  background: #111;
-  color: white;
-  border: none;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: #333;
-}
-
-.summary-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.summary-item {
-  flex: 1 1 200px;
-  background: #f2f2f2;
-  padding: 1rem;
-  border-radius: 8px;
-  font-weight: 500;
-}
-
-.filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+form input, form select, form button {
+  margin: 5px;
+  padding: 8px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 10px;
 }
 
 th, td {
-  padding: 0.7rem;
-  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
 }
 
-.status-paid {
-  color: green;
-  font-weight: bold;
-}
-
-.status-pending {
-  color: orange;
-  font-weight: bold;
-}
-
-/* Modal Styling */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 10;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-  background: white;
-  margin: 10% auto;
-  padding: 1rem;
-  width: 90%;
-  max-width: 500px;
-  border-radius: 10px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-#userSection {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+button {
+  cursor: pointer;
 }

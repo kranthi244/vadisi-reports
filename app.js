@@ -28,12 +28,12 @@ import {
 // -------------------- FIREBASE CONFIG - REPLACE THESE --------------------
 // Replace the placeholder values below with your firebaseConfig JSON object.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
+  authDomain: "vadisi-reports.firebaseapp.com",
+  projectId: "vadisi-reports",
+  storageBucket: "vadisi-reports.firebasestorage.app",
+  messagingSenderId: "574994089915",
+  appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
 };
 // -------------------------------------------------------------------------
 
@@ -537,3 +537,4 @@ document.getElementById("userSection").appendChild(csvButton);
 // -------------------- INITIAL UI TWEAKS --------------------
 // Show hint if not signed in
 if (!auth.currentUser) showPleaseSignInMessage();
+

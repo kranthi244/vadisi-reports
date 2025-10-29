@@ -1,28 +1,9 @@
-// -------------------- Firebase Setup --------------------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  onSnapshot,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// -------------------- Firebase Config --------------------
+// ---------------- FIREBASE CONFIGURATION ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
   authDomain: "vadisi-reports.firebaseapp.com",
@@ -32,207 +13,223 @@ const firebaseConfig = {
   appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
 
-// -------------------- DOM Elements --------------------
-const signInBtn = document.getElementById("signInBtn");
-const signOutBtn = document.getElementById("signOutBtn");
-const userEmail = document.getElementById("userEmail");
-
+// ---------------- HTML ELEMENTS ----------------
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 const reportForm = document.getElementById("reportForm");
-const reportsTableBody = document.querySelector("#reportsTable tbody");
-const editModal = document.getElementById("editModal");
-const editForm = document.getElementById("editForm");
-
-const totalReportsEl = document.getElementById("totalReports");
-const totalPendingEl = document.getElementById("totalPending");
-const totalPaidEl = document.getElementById("totalPaid");
-const topAgencyEl = document.getElementById("topAgency");
+const reportBody = document.getElementById("reportBody");
+const filterAgency = document.getElementById("filterAgency");
+const filterMovie = document.getElementById("filterMovie");
+const filterStatus = document.getElementById("filterStatus");
+const fromDate = document.getElementById("fromDate");
+const toDate = document.getElementById("toDate");
+const applyFilters = document.getElementById("applyFilters");
+const clearFilters = document.getElementById("clearFilters");
+const exportCSV = document.getElementById("exportCSV");
 
 let currentUser = null;
-let currentEditId = null;
 
-// -------------------- Auth Logic --------------------
-signInBtn.onclick = async () => {
+// ---------------- AUTHENTICATION ----------------
+loginBtn.addEventListener("click", async () => {
   try {
     await signInWithPopup(auth, provider);
-  } catch (e) {
-    console.error("Sign in failed:", e.message);
-    alert("Sign in failed: " + e.message);
+  } catch (error) {
+    alert("Sign in failed: " + error.message);
   }
-};
+});
 
-signOutBtn.onclick = async () => {
+logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
-};
+});
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
-    userEmail.textContent = user.email;
-    signInBtn.style.display = "none";
-    signOutBtn.style.display = "inline-block";
+    loginBtn.hidden = true;
+    logoutBtn.hidden = false;
+    document.getElementById("addReport").style.display = "block";
+    document.getElementById("filters").style.display = "block";
+    document.getElementById("reportTable").style.display = "block";
     loadReports();
   } else {
     currentUser = null;
-    userEmail.textContent = "";
-    signInBtn.style.display = "inline-block";
-    signOutBtn.style.display = "none";
-    reportsTableBody.innerHTML = "";
+    loginBtn.hidden = false;
+    logoutBtn.hidden = true;
+    reportBody.innerHTML = "";
+    document.getElementById("addReport").style.display = "none";
+    document.getElementById("filters").style.display = "none";
+    document.getElementById("reportTable").style.display = "none";
   }
 });
 
-// -------------------- Add Report --------------------
+// ---------------- ADD REPORT ----------------
 reportForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!currentUser) return alert("Please sign in first.");
-
-  const link = document.getElementById("link").value.trim();
-  const agency = document.getElementById("agency").value.trim();
-  const movie = document.getElementById("movie").value.trim();
-  const amount = parseFloat(document.getElementById("amount").value);
-  const status = document.getElementById("status").value;
-  const dateInput = document.getElementById("date").value;
-  const date = dateInput || new Date().toISOString().split("T")[0];
-  const notes = document.getElementById("notes").value.trim();
-
-  try {
-    await addDoc(collection(db, "reports"), {
-      userId: currentUser.uid,
-      link,
-      agency,
-      movie,
-      amount,
-      status,
-      date,
-      notes,
-      createdAt: serverTimestamp(),
-    });
-
-    reportForm.reset();
-    document.getElementById("date").value = "";
-  } catch (e) {
-    console.error("Failed to add report:", e);
-    alert("Failed to add report: " + e.message);
+  if (!currentUser) {
+    alert("Please sign in first.");
+    return;
   }
-});
 
-// -------------------- Load Reports --------------------
-async function loadReports() {
-  const q = query(
-    collection(db, "reports"),
-    where("userId", "==", currentUser.uid),
-    orderBy("createdAt", "desc")
-  );
-
-  onSnapshot(q, (snapshot) => {
-    reportsTableBody.innerHTML = "";
-    let total = 0,
-      pending = 0,
-      paid = 0;
-    const agencyCount = {};
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const tr = document.createElement("tr");
-
-      const statusClass =
-        data.status === "Paid" ? "status-paid" : "status-pending";
-
-      tr.innerHTML = `
-        <td><a href="${data.link}" target="_blank">Link</a></td>
-        <td>${data.agency}</td>
-        <td>${data.movie}</td>
-        <td>₹${data.amount}</td>
-        <td class="${statusClass}">${data.status}</td>
-        <td>${data.date}</td>
-        <td>${data.notes || ""}</td>
-        <td>
-          <button class="editBtn" data-id="${docSnap.id}">Edit</button>
-          <button class="deleteBtn" data-id="${docSnap.id}">Delete</button>
-        </td>
-      `;
-
-      reportsTableBody.appendChild(tr);
-
-      // Dashboard calculations
-      total += data.amount;
-      if (data.status === "Pending") pending += data.amount;
-      if (data.status === "Paid") paid += data.amount;
-
-      agencyCount[data.agency] = (agencyCount[data.agency] || 0) + 1;
-    });
-
-    // Dashboard summary
-    totalReportsEl.textContent = snapshot.size;
-    totalPendingEl.textContent = pending;
-    totalPaidEl.textContent = paid;
-
-    const topAgency = Object.entries(agencyCount).sort(
-      (a, b) => b[1] - a[1]
-    )[0];
-    topAgencyEl.textContent = topAgency ? topAgency[0] : "N/A";
-
-    // Add edit/delete listeners
-    document.querySelectorAll(".editBtn").forEach((btn) =>
-      btn.addEventListener("click", () => openEditModal(btn.dataset.id))
-    );
-    document.querySelectorAll(".deleteBtn").forEach((btn) =>
-      btn.addEventListener("click", () => deleteReport(btn.dataset.id))
-    );
-  });
-}
-
-// -------------------- Edit Modal --------------------
-async function openEditModal(id) {
-  const docRef = doc(db, "reports", id);
-  const snapshot = await getDocs(query(collection(db, "reports"), where("__name__", "==", id)));
-  snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-    currentEditId = id;
-    editModal.style.display = "block";
-    document.getElementById("editLink").value = data.link;
-    document.getElementById("editAgency").value = data.agency;
-    document.getElementById("editMovie").value = data.movie;
-    document.getElementById("editAmount").value = data.amount;
-    document.getElementById("editStatus").value = data.status;
-    document.getElementById("editDate").value = data.date;
-    document.getElementById("editNotes").value = data.notes || "";
-  });
-}
-
-document.getElementById("cancelEdit").onclick = () => {
-  editModal.style.display = "none";
-};
-
-editForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!currentEditId) return;
-
-  const updated = {
-    link: document.getElementById("editLink").value,
-    agency: document.getElementById("editAgency").value,
-    movie: document.getElementById("editMovie").value,
-    amount: parseFloat(document.getElementById("editAmount").value),
-    status: document.getElementById("editStatus").value,
-    date: document.getElementById("editDate").value,
-    notes: document.getElementById("editNotes").value,
+  const reportData = {
+    link: document.getElementById("link").value,
+    agency: document.getElementById("agency").value,
+    movie: document.getElementById("movie").value,
+    amount: parseFloat(document.getElementById("amount").value),
+    status: document.getElementById("status").value,
+    date: document.getElementById("date").value || new Date().toISOString().split("T")[0],
   };
 
   try {
-    await updateDoc(doc(db, "reports", currentEditId), updated);
-    editModal.style.display = "none";
-  } catch (e) {
-    alert("Failed to update: " + e.message);
+    const userRef = collection(db, "users", currentUser.uid, "reports");
+    await addDoc(userRef, reportData);
+    alert("Report added successfully!");
+    reportForm.reset();
+    loadReports();
+  } catch (error) {
+    alert("Failed to add report: " + error.message);
+    console.error(error);
   }
 });
 
-// -------------------- Delete --------------------
-async function deleteReport(id) {
-  if (confirm("Delete this record?")) {
-    await deleteDoc(doc(db, "reports", id));
-  }
+// ---------------- LOAD REPORTS ----------------
+async function loadReports() {
+  if (!currentUser) return;
+
+  const userRef = collection(db, "users", currentUser.uid, "reports");
+  const snapshot = await getDocs(userRef);
+  reportBody.innerHTML = "";
+
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><a href="${data.link}" target="_blank">Open</a></td>
+      <td>${data.agency}</td>
+      <td>${data.movie}</td>
+      <td>${data.amount}</td>
+      <td>${data.status}</td>
+      <td>${data.date}</td>
+      <td>
+        <button class="editBtn" data-id="${docSnap.id}">Edit</button>
+        <button class="deleteBtn" data-id="${docSnap.id}">Delete</button>
+      </td>
+    `;
+    reportBody.appendChild(row);
+  });
+
+  attachRowActions();
 }
+
+// ---------------- EDIT / DELETE ----------------
+function attachRowActions() {
+  document.querySelectorAll(".deleteBtn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      if (confirm("Delete this record?")) {
+        await deleteDoc(doc(db, "users", currentUser.uid, "reports", id));
+        loadReports();
+      }
+    });
+  });
+
+  document.querySelectorAll(".editBtn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const newAgency = prompt("Enter new Agency name:");
+      const newMovie = prompt("Enter new Movie name:");
+      const newAmount = prompt("Enter new Amount:");
+      const newStatus = prompt("Enter new Status (Pending/Cleared):");
+
+      if (newAgency && newMovie && newAmount && newStatus) {
+        const docRef = doc(db, "users", currentUser.uid, "reports", id);
+        await updateDoc(docRef, {
+          agency: newAgency,
+          movie: newMovie,
+          amount: parseFloat(newAmount),
+          status: newStatus,
+        });
+        loadReports();
+      }
+    });
+  });
+}
+
+// ---------------- FILTERS ----------------
+applyFilters.addEventListener("click", async () => {
+  if (!currentUser) return;
+  const userRef = collection(db, "users", currentUser.uid, "reports");
+  const snapshot = await getDocs(userRef);
+
+  const agencyFilter = filterAgency.value.toLowerCase();
+  const movieFilter = filterMovie.value.toLowerCase();
+  const statusFilter = filterStatus.value;
+  const from = fromDate.value;
+  const to = toDate.value;
+
+  reportBody.innerHTML = "";
+
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const date = data.date;
+    const withinDate =
+      (!from || date >= from) && (!to || date <= to);
+    if (
+      data.agency.toLowerCase().includes(agencyFilter) &&
+      data.movie.toLowerCase().includes(movieFilter) &&
+      (statusFilter === "All" || data.status === statusFilter) &&
+      withinDate
+    ) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><a href="${data.link}" target="_blank">Open</a></td>
+        <td>${data.agency}</td>
+        <td>${data.movie}</td>
+        <td>${data.amount}</td>
+        <td>${data.status}</td>
+        <td>${data.date}</td>
+      `;
+      reportBody.appendChild(row);
+    }
+  });
+});
+
+clearFilters.addEventListener("click", () => {
+  filterAgency.value = "";
+  filterMovie.value = "";
+  filterStatus.value = "All";
+  fromDate.value = "";
+  toDate.value = "";
+  loadReports();
+});
+
+// ---------------- EXPORT CSV ----------------
+exportCSV.addEventListener("click", () => {
+  const rows = Array.from(document.querySelectorAll("#reportBody tr"));
+  if (!rows.length) {
+    alert("No data to export.");
+    return;
+  }
+
+  const csvData = [
+    ["Link", "Agency", "Movie", "Amount", "Status", "Date"],
+    ...rows.map((row) =>
+      Array.from(row.children).map((cell) => cell.innerText)
+    ),
+  ]
+    .map((r) => r.join(","))
+    .join("\n");
+
+  const blob = new Blob([csvData], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "vadisi_reports.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});

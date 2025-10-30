@@ -1,137 +1,316 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Telugu Swaggers — Reports</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
   <style>
-    body {
-      background-color: #f7f8fa;
+    :root{
+      --bg:#f5f7f9;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#facc15;
+      --accent-dark:#eab308;
+      --header:#0f1724;
+      --shadow:0 6px 18px rgba(16,24,40,0.06);
+      font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#0f1724}
+    
+    /* --- Updated Header --- */
+    header{
+      background:#0b0b0b;
+      color:#fff;
+      padding:18px 25px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+    }
+    .header-left{
+      text-align:left;
+      font-size:24px;  /* increased by 4 points */
+      font-weight:700;
+      line-height:1.2;
+    }
+    .header-left::after{
+      content:"Promotion Dashboard";
+      display:block;
+      font-size:14px;
+      color:#facc15;
+      margin-top:4px;
+      font-weight:500;
+    }
+    .user{
+      color:var(--muted);
+      font-size:14px;
     }
 
-    header {
-      background: #0b0b0b;
-      color: #fff;
-      padding: 18px 25px;
-      text-align: left;
-      font-size: 28px; /* increased by 4 points */
-      font-weight: 700;
-      line-height: 1.3;
+    .container{max-width:1100px;margin:28px auto;padding:0 18px}
+    .summary{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+    .summary-card{flex:1;background:#fff;border-radius:10px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+    .summary-card h6{margin:0;color:var(--muted);font-size:13px}
+    .summary-card h3{margin:0;font-size:18px}
+    .card{background:var(--card);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px}
+    .form-grid{display:grid;grid-template-columns:2fr 2fr 1fr;gap:12px;margin-bottom:12px}
+    .row{display:flex;gap:12px;margin-bottom:12px}
+    input[type="text"],input[type="url"],input[type="number"],input[type="date"],textarea,select{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ee;font-size:14px;
     }
-
-    header::after {
-      content: "Promotion Dashboard";
-      display: block;
-      font-size: 16px;
-      color: #facc15;
-      margin-top: 4px;
-      font-weight: 500;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .btn-yellow {
-      background-color: #facc15;
-      color: #000;
-      font-weight: 600;
-      border-radius: 8px;
-      padding: 6px 14px;
-    }
-
-    .btn-yellow:hover {
-      background-color: #eab308;
+    textarea{min-height:70px;resize:vertical}
+    .btn{padding:8px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+    .btn-yellow{background:var(--accent);color:#000}
+    .btn-gray{background:#e6e9ee;color:#111}
+    .btn-outline{background:#fff;border:1px solid #ddd;color:#111}
+    .filters{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+    .filters input,.filters select{width:200px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+    th,td{padding:10px;border-bottom:1px solid #f1f3f5;text-align:left}
+    th{background:#fbfbfb;color:#111;font-weight:700}
+    tr:nth-child(even) td{background:#fff}
+    .actions{display:flex;gap:8px;align-items:center}
+    .small-btn{padding:6px 8px;border-radius:6px;border:0;cursor:pointer}
+    .edit-btn{background:#0ea5a4;color:#fff}
+    .del-btn{background:#ef4444;color:#fff}
+    .view-link{color:#2563eb;text-decoration:underline}
+    @media(max-width:900px){
+      .form-grid{grid-template-columns:1fr;gap:10px}
+      .filters{flex-direction:column;align-items:stretch}
+      .filters input,.filters select{width:100%}
     }
   </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body class="min-h-screen">
-  
+<body>
+
   <!-- Updated Header -->
   <header>
-    Telugu Swaggers
+    <div class="header-left">Telugu Swaggers</div>
+    <div class="user" id="userEmail">Not signed in</div>
   </header>
 
-  <!-- Existing Dashboard content remains unchanged -->
-  <main class="p-6 space-y-6 max-w-7xl mx-auto">
-    
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="card">
-        <h2 class="text-gray-600 text-sm font-semibold">Total Promotions</h2>
-        <p class="text-2xl font-bold">0</p>
+  <div class="container">
+    <!-- Summary -->
+    <div class="summary">
+      <div class="summary-card">
+        <h6>Total Promotions</h6>
+        <h3 id="totalPromotions">0</h3>
       </div>
-      <div class="card">
-        <h2 class="text-gray-600 text-sm font-semibold">Total Amount</h2>
-        <p class="text-2xl font-bold">₹0</p>
+      <div class="summary-card">
+        <h6>Total Amount</h6>
+        <h3 id="totalAmount">₹0</h3>
       </div>
-      <div class="card">
-        <h2 class="text-gray-600 text-sm font-semibold">Pending Payments</h2>
-        <p class="text-2xl font-bold">₹0</p>
+      <div class="summary-card">
+        <h6>Pending Payments</h6>
+        <h3 id="pendingAmount">₹0</h3>
       </div>
     </div>
 
-    <!-- Form Section -->
-    <section class="card">
-      <h3 class="text-lg font-semibold mb-3">Add Report</h3>
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
-        <input type="text" placeholder="Insta/X Link (https://...)" class="border rounded p-2 col-span-2">
-        <input type="text" placeholder="Agency" class="border rounded p-2">
-        <input type="text" placeholder="Movie" class="border rounded p-2">
-        <input type="number" placeholder="Amount" class="border rounded p-2">
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-        <select class="border rounded p-2">
-          <option>Pending</option>
-          <option>Paid</option>
-        </select>
-        <input type="date" class="border rounded p-2">
-        <textarea placeholder="Notes (optional)" class="border rounded p-2 md:col-span-2"></textarea>
-      </div>
-      <div class="flex gap-3">
-        <button class="btn-yellow">Add</button>
-        <button class="border rounded px-4 py-2">Clear</button>
-        <button class="border rounded px-4 py-2">Export PDF</button>
-      </div>
-    </section>
+    <!-- Add Report -->
+    <div class="card">
+      <h4 style="margin:0 0 12px 0">Add Report</h4>
+      <form id="addForm">
+        <div class="form-grid">
+          <input id="instagramLink" type="url" placeholder="Insta/X Link (https://...)" />
+          <input id="agency" type="text" placeholder="Agency" />
+          <input id="movie" type="text" placeholder="Movie" />
+        </div>
+        <div class="row">
+          <input id="amount" type="number" placeholder="Amount (default 1200)" />
+          <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Cleared">Cleared</option>
+          </select>
+          <input id="datePosted" type="date" />
+        </div>
+        <div style="margin-bottom:12px">
+          <textarea id="notes" placeholder="Notes (optional)"></textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="addBtn" class="btn btn-yellow" type="button">Add</button>
+          <button id="clearBtn" class="btn btn-gray" type="button">Clear</button>
+          <button id="exportAddPdfBtn" class="btn btn-outline" type="button">Export PDF</button>
+        </div>
+      </form>
+    </div>
 
-    <!-- Reports Table -->
-    <section class="card">
-      <h3 class="text-lg font-semibold mb-3">Your Reports</h3>
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
-        <input type="text" placeholder="Filter by Agency" class="border rounded p-2">
-        <input type="text" placeholder="Filter by Movie" class="border rounded p-2">
-        <input type="date" class="border rounded p-2">
-        <select class="border rounded p-2">
-          <option>All Status</option>
-          <option>Pending</option>
-          <option>Paid</option>
-        </select>
-        <button class="border rounded px-4 py-2">Export PDF</button>
+    <!-- Reports -->
+    <div class="card" style="padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h4 style="margin:0">Your Reports</h4>
+        <div id="quickActions" style="gap:8px"></div>
       </div>
 
-      <table class="w-full border-t text-sm">
-        <thead class="bg-gray-100">
+      <div class="filters">
+        <input id="filterAgency" type="text" placeholder="Filter by Agency" />
+        <input id="filterMovie" type="text" placeholder="Filter by Movie" />
+        <input id="filterDate" type="date" placeholder="Filter by Date" />
+        <select id="filterStatus">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Cleared">Cleared</option>
+        </select>
+        <div style="flex:1"></div>
+        <button id="exportReportsPdfBtn" class="btn btn-outline" type="button">Export PDF</button>
+      </div>
+
+      <table id="reportsTable">
+        <thead>
           <tr>
-            <th class="p-2 text-left">Agency</th>
-            <th class="p-2 text-left">Movie</th>
-            <th class="p-2 text-left">Date Posted</th>
-            <th class="p-2 text-left">Amount</th>
-            <th class="p-2 text-left">Status</th>
-            <th class="p-2 text-left">Link</th>
-            <th class="p-2 text-left">Actions</th>
+            <th>Agency</th>
+            <th>Movie</th>
+            <th>Date Posted</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Link</th>
+            <th>Actions</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Reports go here -->
-        </tbody>
+        <tbody id="reportsTbody"></tbody>
       </table>
-    </section>
+    </div>
+  </div>
 
-  </main>
+  <!-- Firebase + App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
+      authDomain: "vadisi-reports.firebaseapp.com",
+      projectId: "vadisi-reports",
+      storageBucket: "vadisi-reports.firebasestorage.app",
+      messagingSenderId: "574994089915",
+      appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+
+    const userEmailEl=document.getElementById('userEmail');
+    const totalPromotionsEl=document.getElementById('totalPromotions');
+    const totalAmountEl=document.getElementById('totalAmount');
+    const pendingAmountEl=document.getElementById('pendingAmount');
+    const instagramLinkEl=document.getElementById('instagramLink');
+    const agencyEl=document.getElementById('agency');
+    const movieEl=document.getElementById('movie');
+    const amountEl=document.getElementById('amount');
+    const statusEl=document.getElementById('status');
+    const datePostedEl=document.getElementById('datePosted');
+    const notesEl=document.getElementById('notes');
+    const addBtn=document.getElementById('addBtn');
+    const clearBtn=document.getElementById('clearBtn');
+    const exportAddPdfBtn=document.getElementById('exportAddPdfBtn');
+    const exportReportsPdfBtn=document.getElementById('exportReportsPdfBtn');
+    const filterAgencyEl=document.getElementById('filterAgency');
+    const filterMovieEl=document.getElementById('filterMovie');
+    const filterDateEl=document.getElementById('filterDate');
+    const filterStatusEl=document.getElementById('filterStatus');
+    const reportsTbody=document.getElementById('reportsTbody');
+
+    amountEl.value=1200;
+    datePostedEl.value=new Date().toISOString().split('T')[0];
+
+    async function ensureSignedIn(){
+      const user=auth.currentUser;
+      if(!user){
+        try{await signInWithPopup(auth,provider);}catch(e){alert('Sign in required.');}
+      }
+    }
+
+    onAuthStateChanged(auth,(user)=>{
+      if(user){
+        userEmailEl.textContent=user.email||'Signed in';
+        startReportsListener();
+      }else{
+        userEmailEl.textContent='Not signed in';
+      }
+    });
+    ensureSignedIn();
+
+    const reportsCol=collection(db,'reports');
+    let allReports=[];
+
+    function startReportsListener(){
+      const q=query(reportsCol,orderBy('createdAt','desc'));
+      onSnapshot(q,(snap)=>{
+        allReports=snap.docs.map(d=>({id:d.id,...d.data()}));
+        renderAndUpdateSummary();
+      });
+    }
+
+    function renderAndUpdateSummary(){
+      const aF=filterAgencyEl.value.trim().toLowerCase();
+      const mF=filterMovieEl.value.trim().toLowerCase();
+      const dF=filterDateEl.value;
+      const sF=filterStatusEl.value;
+      const filtered=allReports.filter(r=>{
+        if(aF && !(r.agency||'').toLowerCase().includes(aF))return false;
+        if(mF && !(r.movie||'').toLowerCase().includes(mF))return false;
+        if(dF && r.date!==dF)return false;
+        if(sF && r.status!==sF)return false;
+        return true;
+      });
+      reportsTbody.innerHTML='';
+      filtered.forEach(r=>{
+        const tr=document.createElement('tr');
+        const tdA=document.createElement('td');tdA.contentEditable=true;tdA.innerText=r.agency||'';tdA.dataset.field='agency';
+        const tdM=document.createElement('td');tdM.contentEditable=true;tdM.innerText=r.movie||'';tdM.dataset.field='movie';
+        const tdD=document.createElement('td');tdD.innerText=r.date||'';tdD.style.cursor='pointer';
+        tdD.addEventListener('click',()=>replaceWithDateInput(tdD,r));
+        const tdAmt=document.createElement('td');tdAmt.contentEditable=true;tdAmt.innerText=r.amount||'';tdAmt.dataset.field='amount';
+        const tdS=document.createElement('td');const sel=document.createElement('select');
+        sel.innerHTML='<option>Pending</option><option>Cleared</option>';sel.value=r.status||'Pending';
+        sel.addEventListener('change',()=>safeUpdate(r.id,{status:sel.value}));tdS.appendChild(sel);
+        const tdL=document.createElement('td');const a=document.createElement('a');
+        a.href=r.link||'#';a.target='_blank';a.rel='noopener';a.className='view-link';a.innerText=r.link?'View':'-';tdL.appendChild(a);
+        const tdAct=document.createElement('td');tdAct.className='actions';
+        const del=document.createElement('button');del.className='small-btn del-btn';del.textContent='Delete';
+        del.addEventListener('click',async()=>{if(confirm('Delete this report?'))await deleteDoc(doc(db,'reports',r.id));});
+        tdAct.appendChild(del);
+        tr.append(tdA,tdM,tdD,tdAmt,tdS,tdL,tdAct);
+        [tdA,tdM,tdAmt].forEach(td=>td.addEventListener('blur',async()=>{
+          const f=td.dataset.field;let nv=td.innerText.trim();if(f==='amount')nv=Number(nv.replace(/[^\d.-]/g,''))||0;
+          if(String(r[f]??'')!==String(nv))await safeUpdate(r.id,{[f]:nv});
+        }));
+        reportsTbody.appendChild(tr);
+      });
+      const tot=allReports.length;
+      const tAmt=allReports.reduce((s,it)=>s+(+it.amount||0),0);
+      const pAmt=allReports.reduce((s,it)=>s+((it.status==='Pending')?(+it.amount||0):0),0);
+      totalPromotionsEl.innerText=tot;
+      totalAmountEl.innerText='₹'+tAmt.toLocaleString('en-IN');
+      pendingAmountEl.innerText='₹'+pAmt.toLocaleString('en-IN');
+    }
+
+    function replaceWithDateInput(td,r){
+      const inp=document.createElement('input');inp.type='date';inp.value=r.date||new Date().toISOString().split('T')[0];
+      inp.addEventListener('blur',async()=>{const nv=inp.value;td.innerText=nv;if(nv!==r.date)await safeUpdate(r.id,{date:nv});});
+      td.innerText='';td.appendChild(inp);inp.focus();
+    }
+    async function safeUpdate(id,payload){await updateDoc(doc(db,'reports',id),payload);}
+    addBtn.addEventListener('click',async()=>{
+      await ensureSignedIn();
+      const link=instagramLinkEl.value.trim(),agency=agencyEl.value.trim(),movie=movieEl.value.trim();
+      const amount=Number(amountEl.value)||1200,status=statusEl.value||'Pending',date=datePostedEl.value||new Date().toISOString().split('T')[0],notes=notesEl.value.trim();
+      if(!agency||!movie)return alert('Provide agency and movie.');
+      await addDoc(reportsCol,{link,agency,movie,amount,status,date,notes,createdAt:new Date()});
+      instagramLinkEl.value='';agencyEl.value='';movieEl.value='';amountEl.value=1200;statusEl.value='Pending';datePostedEl.value=new Date().toISOString().split('T')[0];notesEl.value='';
+    });
+    clearBtn.addEventListener('click',()=>{instagramLinkEl.value='';agencyEl.value='';movieEl.value='';amountEl.value=1200;statusEl.value='Pending';datePostedEl.value=new Date().toISOString().split('T')[0];notesEl.value='';});
+    exportReportsPdfBtn.addEventListener('click',()=>{
+      const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4'});doc.setFontSize(14);doc.text('Telugu Swaggers — Reports',40,40);
+      doc.setFontSize(10);let y=70;const rows=[];reportsTbody.querySelectorAll('tr').forEach(tr=>{const cols=[...tr.querySelectorAll('td')].slice(0,6);rows.push(cols.map(c=>c.textContent.trim().replace(/\s+/g,' ')));});
+      rows.forEach(r=>{doc.text(r.join(' | '),40,y);y+=14;if(y>740){doc.addPage();y=40;}});
+      doc.save('Telugu_Swaggers_Reports.pdf');
+    });
+    exportAddPdfBtn.addEventListener('click',()=>exportReportsPdfBtn.click());
+    [filterAgencyEl,filterMovieEl,filterDateEl,filterStatusEl].forEach(e=>{e.addEventListener('input',renderAndUpdateSummary);e.addEventListener('change',renderAndUpdateSummary);});
+  </script>
 </body>
 </html>

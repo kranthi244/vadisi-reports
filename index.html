@@ -1,183 +1,499 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Telugu Swaggers — Reports</title>
 
-body {
-  background: #fffef8;
-  color: #222;
-  padding: 20px;
-  transition: all 0.3s ease;
-}
+  <!-- Styles (keeps the same look) -->
+  <style>
+    :root{
+      --bg:#f5f7f9;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#facc15;
+      --accent-dark:#eab308;
+      --header:#0f1724;
+      --shadow: 0 6px 18px rgba(16,24,40,0.06);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#0f1724}
+    header{background:#0b0b0b;color:#fff;padding:18px 0;text-align:center;font-size:20px;font-weight:600}
+    .container{max-width:1100px;margin:28px auto;padding:0 18px}
+    .summary{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+    .summary-card{flex:1;background:#fff;border-radius:10px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+    .summary-card h6{margin:0;color:var(--muted);font-size:13px}
+    .summary-card h3{margin:0;font-size:18px}
+    .card{background:var(--card);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px}
+    .form-grid{display:grid;grid-template-columns:2fr 2fr 1fr;gap:12px;margin-bottom:12px}
+    .row{display:flex;gap:12px;margin-bottom:12px}
+    input[type="text"], input[type="url"], input[type="number"], input[type="date"], textarea, select{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ee;font-size:14px;
+    }
+    textarea{min-height:70px;resize:vertical}
+    .btn{padding:8px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+    .btn-yellow{background:var(--accent);color:#000}
+    .btn-gray{background:#e6e9ee;color:#111}
+    .btn-outline{background:#fff;border:1px solid #ddd;color:#111}
+    .filters{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+    .filters input, .filters select{width:200px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+    th,td{padding:10px;border-bottom:1px solid #f1f3f5;text-align:left}
+    th{background:#fbfbfb;color:#111;font-weight:700}
+    tr:nth-child(even) td{background:#fff}
+    .actions{display:flex;gap:8px;align-items:center}
+    .small-btn{padding:6px 8px;border-radius:6px;border:0;cursor:pointer}
+    .edit-btn{background:#0ea5a4;color:#fff}
+    .del-btn{background:#ef4444;color:#fff}
+    .view-link{color:#2563eb;text-decoration:underline}
+    .top-right{display:flex;gap:8px;align-items:center}
+    .user{float:right;color:var(--muted)}
+    @media (max-width:900px){
+      .form-grid{grid-template-columns:1fr;gap:10px}
+      .filters{flex-direction:column;align-items:stretch}
+      .filters input, .filters select{width:100%}
+    }
+  </style>
 
-/* Dark Mode */
-body.dark {
-  background: #121212;
-  color: #f2f2f2;
-}
+  <!-- Firebase SDKs (modular) -->
+  <script type="module">
+    // Nothing here — main module included at page end
+  </script>
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #ffcc00;
-  padding: 15px 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header>Telugu Swaggers</header>
 
-header h1 {
-  font-size: 22px;
-  font-weight: bold;
-}
+  <div class="container">
+    <div class="user" id="userEmail">Not signed in</div>
 
-.auth-buttons button {
-  margin-left: 10px;
-  padding: 8px 14px;
-  border: none;
-  background: #000;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-}
+    <!-- Summary -->
+    <div class="summary">
+      <div class="summary-card">
+        <h6>Total Promotions</h6>
+        <h3 id="totalPromotions">0</h3>
+      </div>
+      <div class="summary-card">
+        <h6>Total Amount</h6>
+        <h3 id="totalAmount">₹0</h3>
+      </div>
+      <div class="summary-card">
+        <h6>Pending Payments</h6>
+        <h3 id="pendingAmount">₹0</h3>
+      </div>
+    </div>
 
-.auth-buttons button:hover {
-  opacity: 0.85;
-}
+    <!-- Add Report card -->
+    <div class="card">
+      <h4 style="margin:0 0 12px 0">Add Report</h4>
 
-.summary {
-  display: flex;
-  justify-content: space-around;
-  margin: 25px 0;
-  flex-wrap: wrap;
-}
+      <form id="addForm">
+        <div class="form-grid">
+          <input id="instagramLink" type="url" placeholder="Insta/X Link (https://...)" />
+          <input id="agency" type="text" placeholder="Agency" />
+          <input id="movie" type="text" placeholder="Movie" />
+        </div>
 
-.card {
-  background: #fff9d6;
-  padding: 20px;
-  border-radius: 10px;
-  width: 28%;
-  text-align: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease;
-}
+        <div class="row">
+          <input id="amount" type="number" placeholder="Amount (default 1200)" />
+          <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Cleared">Cleared</option>
+          </select>
+          <input id="datePosted" type="date" />
+        </div>
 
-.card:hover {
-  transform: scale(1.03);
-}
+        <div style="margin-bottom:12px">
+          <textarea id="notes" placeholder="Notes (optional)"></textarea>
+        </div>
 
-body.dark .card {
-  background: #1e1e1e;
-  color: #f2f2f2;
-}
+        <div style="display:flex;justify-content:flex-start;gap:8px">
+          <button id="addBtn" class="btn btn-yellow" type="button">Add</button>
+          <button id="clearBtn" class="btn btn-gray" type="button">Clear</button>
+          <button id="exportAddPdfBtn" class="btn btn-outline" type="button">Export PDF</button>
+        </div>
+      </form>
+    </div>
 
-.form-section {
-  background: #fffbe8;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
+    <!-- Reports -->
+    <div class="card" style="padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h4 style="margin:0">Your Reports</h4>
+        <div id="quickActions" class="top-right" style="gap:8px">
+          <!-- (if needed buttons here) -->
+        </div>
+      </div>
 
-body.dark .form-section {
-  background: #1b1b1b;
-}
+      <!-- Filters -->
+      <div class="filters">
+        <input id="filterAgency" type="text" placeholder="Filter by Agency" />
+        <input id="filterMovie" type="text" placeholder="Filter by Movie" />
+        <input id="filterDate" type="date" placeholder="Filter by Date" />
+        <select id="filterStatus">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Cleared">Cleared</option>
+        </select>
 
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
+        <div style="flex:1"></div>
 
-form input, form select, form button {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  flex: 1 1 200px;
-}
+        <button id="exportReportsPdfBtn" class="btn btn-outline" type="button">Export PDF</button>
+      </div>
 
-form button {
-  background: #ffcc00;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
+      <table id="reportsTable" aria-describedby="Your Reports Table">
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Movie</th>
+            <th>Date Posted</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Link</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="reportsTbody">
+          <!-- rows injected here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-form button:hover {
-  background: #e6b800;
-}
+  <!-- Main JS (module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc,
+      updateDoc, deleteDoc, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import {
+      getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-.table-section {
-  margin-top: 35px;
-  background: #fffbe8;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  overflow-x: auto;
-}
+    // ---------- config (your exact SDK config) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
+      authDomain: "vadisi-reports.firebaseapp.com",
+      projectId: "vadisi-reports",
+      storageBucket: "vadisi-reports.firebasestorage.app",
+      messagingSenderId: "574994089915",
+      appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
+    };
 
-body.dark .table-section {
-  background: #1b1b1b;
-}
+    // ---------- init ----------
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
+    // ---------- DOM ----------
+    const userEmailEl = document.getElementById('userEmail');
+    const totalPromotionsEl = document.getElementById('totalPromotions');
+    const totalAmountEl = document.getElementById('totalAmount');
+    const pendingAmountEl = document.getElementById('pendingAmount');
 
-table th, table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: center;
-}
+    const instagramLinkEl = document.getElementById('instagramLink');
+    const agencyEl = document.getElementById('agency');
+    const movieEl = document.getElementById('movie');
+    const amountEl = document.getElementById('amount');
+    const statusEl = document.getElementById('status');
+    const datePostedEl = document.getElementById('datePosted');
+    const notesEl = document.getElementById('notes');
 
-table th {
-  background: #ffcc00;
-  color: #000;
-}
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const exportAddPdfBtn = document.getElementById('exportAddPdfBtn');
+    const exportReportsPdfBtn = document.getElementById('exportReportsPdfBtn');
 
-body.dark table th {
-  background: #222;
-  color: #ffcc00;
-}
+    const filterAgencyEl = document.getElementById('filterAgency');
+    const filterMovieEl = document.getElementById('filterMovie');
+    const filterDateEl = document.getElementById('filterDate');
+    const filterStatusEl = document.getElementById('filterStatus');
 
-.saveBtn {
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 8px;
-  cursor: pointer;
-}
+    const reportsTbody = document.getElementById('reportsTbody');
 
-.saveBtn:hover {
-  opacity: 0.8;
-}
+    // default amount 1200 and default date today
+    amountEl.value = 1200;
+    (function setToday(){ const d=new Date(); const s=d.toISOString().split('T')[0]; datePostedEl.value=s })();
 
-.table-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
+    // ---------- auth (auto sign-in prompt) ----------
+    async function ensureSignedIn(){
+      const user = auth.currentUser;
+      if(!user){
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (err) {
+          console.error('Sign in error', err);
+          alert('Sign in required to use this page.');
+        }
+      }
+    }
 
-.table-controls button {
-  padding: 8px 14px;
-  background: #ffcc00;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
+    onAuthStateChanged(auth, (user) => {
+      if(user){
+        userEmailEl.textContent = user.email || user.displayName || 'Signed in';
+        // start listening reports
+        startReportsListener();
+      } else {
+        userEmailEl.textContent = 'Not signed in';
+      }
+    });
 
-.table-controls button:hover {
-  background: #e6b800;
-}
+    // Immediately prompt sign-in (only for first time)
+    ensureSignedIn();
 
-footer {
-  text-align: center;
-  margin-top: 25px;
-  font-size: 14px;
-  opacity: 0.7;
-}
+    // ---------- Firestore collection ----------
+    const reportsCol = collection(db, 'reports');
+
+    // local cache of snapshot to apply filters quickly
+    let allReports = [];
+
+    // ---------- listen / render ----------
+    function startReportsListener(){
+      const q = query(reportsCol, orderBy('createdAt', 'desc'));
+      onSnapshot(q, (snapshot) => {
+        const arr = [];
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          arr.push({ id: docSnap.id, ...data });
+        });
+        // keep local copy and render
+        allReports = arr;
+        renderAndUpdateSummary();
+      }, (err) => {
+        console.error('Snapshot error', err);
+      });
+    }
+
+    // ---------- render & attach behaviors ----------
+    function renderAndUpdateSummary(){
+      // apply filters
+      const agencyF = filterAgencyEl.value.trim().toLowerCase();
+      const movieF = filterMovieEl.value.trim().toLowerCase();
+      const dateF = filterDateEl.value;
+      const statusF = filterStatusEl.value;
+
+      const filtered = allReports.filter(r => {
+        if(agencyF && !(r.agency||'').toLowerCase().includes(agencyF)) return false;
+        if(movieF && !(r.movie||'').toLowerCase().includes(movieF)) return false;
+        if(dateF && r.date !== dateF) return false;
+        if(statusF && r.status !== statusF) return false;
+        return true;
+      });
+
+      // populate table
+      reportsTbody.innerHTML = '';
+      filtered.forEach(r => {
+        const tr = document.createElement('tr');
+
+        // Agency (editable)
+        const tdAgency = document.createElement('td');
+        tdAgency.contentEditable = true;
+        tdAgency.innerText = r.agency || '';
+        tdAgency.dataset.field = 'agency';
+
+        // Movie (editable)
+        const tdMovie = document.createElement('td');
+        tdMovie.contentEditable = true;
+        tdMovie.innerText = r.movie || '';
+        tdMovie.dataset.field = 'movie';
+
+        // Date posted (editable via date input on click)
+        const tdDate = document.createElement('td');
+        tdDate.innerText = r.date || '';
+        tdDate.style.cursor = 'pointer';
+        tdDate.addEventListener('click', () => replaceWithDateInput(tdDate, r));
+
+        // Amount (editable)
+        const tdAmount = document.createElement('td');
+        tdAmount.contentEditable = true;
+        tdAmount.innerText = r.amount ?? '';
+        tdAmount.dataset.field = 'amount';
+
+        // Status (select)
+        const tdStatus = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.innerHTML = '<option>Pending</option><option>Cleared</option>';
+        sel.value = r.status || 'Pending';
+        sel.addEventListener('change', async () => {
+          await safeUpdate(r.id, { status: sel.value });
+        });
+        tdStatus.appendChild(sel);
+
+        // Link (view)
+        const tdLink = document.createElement('td');
+        const a = document.createElement('a');
+        a.href = r.link || '#';
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'view-link';
+        a.innerText = r.link ? 'View' : '-';
+        tdLink.appendChild(a);
+
+        // Actions (delete)
+        const tdActions = document.createElement('td');
+        tdActions.className = 'actions';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'small-btn del-btn';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', async () => {
+          if(confirm('Delete this report?')) {
+            try { await deleteDoc(doc(db, 'reports', r.id)); }
+            catch(e){ alert('Delete error: '+e.message) }
+          }
+        });
+        tdActions.appendChild(delBtn);
+
+        tr.append(tdAgency, tdMovie, tdDate, tdAmount, tdStatus, tdLink, tdActions);
+
+        // attach blur auto-save for contenteditable fields
+        [tdAgency, tdMovie, tdAmount].forEach(td => {
+          td.addEventListener('blur', async () => {
+            const field = td.dataset.field;
+            let newVal = td.innerText.trim();
+            if(field === 'amount') newVal = newVal === '' ? 0 : Number(newVal.replace(/[^\d.-]/g,''));
+            if(String(r[field] ?? '') !== String(newVal)){
+              await safeUpdate(r.id, { [field]: newVal });
+            }
+          });
+        });
+
+        reportsTbody.appendChild(tr);
+      });
+
+      // update summary numbers (based on allReports — not only filtered)
+      const totalPromos = allReports.length;
+      const totalAmt = allReports.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+      const pendingAmt = allReports.reduce((s, it) => s + ((it.status === 'Pending') ? (Number(it.amount)||0) : 0), 0);
+
+      totalPromotionsEl.innerText = totalPromos;
+      totalAmountEl.innerText = '₹' + totalAmt.toLocaleString('en-IN');
+      pendingAmountEl.innerText = '₹' + pendingAmt.toLocaleString('en-IN');
+    }
+
+    // replace table cell with date input for inline editing
+    function replaceWithDateInput(tdDate, report){
+      const old = tdDate.innerText || '';
+      const inp = document.createElement('input');
+      inp.type = 'date';
+      inp.value = report.date || new Date().toISOString().split('T')[0];
+      inp.style.padding = '6px';
+      inp.addEventListener('blur', async () => {
+        const newVal = inp.value;
+        tdDate.innerText = newVal;
+        if(newVal !== report.date) await safeUpdate(report.id, { date: newVal });
+      });
+      tdDate.innerText = '';
+      tdDate.appendChild(inp);
+      inp.focus();
+    }
+
+    // safe update wrapper with basic error handling
+    async function safeUpdate(id, payload){
+      try {
+        await updateDoc(doc(db, 'reports', id), payload);
+      } catch(e){
+        console.error('Update failed', e);
+        alert('Update failed: ' + e.message);
+      }
+    }
+
+    // ---------- add report ----------
+    addBtn.addEventListener('click', async () => {
+      await ensureAuth();
+      const link = instagramLinkEl.value.trim();
+      const agency = agencyEl.value.trim();
+      const movie = movieEl.value.trim();
+      let amount = Number(amountEl.value) || 1200;
+      const status = statusEl.value || 'Pending';
+      const datePosted = datePostedEl.value || new Date().toISOString().split('T')[0];
+      const notes = notesEl.value.trim();
+
+      if(!agency || !movie){
+        alert('Please provide agency and movie.');
+        return;
+      }
+
+      try {
+        await addDoc(reportsCol, {
+          link, agency, movie, amount, status, date: datePosted, notes, createdAt: new Date()
+        });
+        // reset to defaults
+        instagramLinkEl.value = '';
+        agencyEl.value = '';
+        movieEl.value = '';
+        amountEl.value = 1200;
+        statusEl.value = 'Pending';
+        datePostedEl.value = new Date().toISOString().split('T')[0];
+        notesEl.value = '';
+      } catch(e){
+        alert('Add failed: ' + e.message);
+      }
+    });
+
+    // ---------- clear form ----------
+    clearBtn.addEventListener('click', ()=> {
+      instagramLinkEl.value = '';
+      agencyEl.value = '';
+      movieEl.value = '';
+      amountEl.value = 1200;
+      statusEl.value = 'Pending';
+      datePostedEl.value = new Date().toISOString().split('T')[0];
+      notesEl.value = '';
+    });
+
+    // ---------- export PDF (exports currently displayed filtered report rows) ----------
+    exportReportsPdfBtn.addEventListener('click', async () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      doc.setFontSize(14);
+      doc.text('Telugu Swaggers — Reports', 40, 40);
+      doc.setFontSize(10);
+      let y = 70;
+      const rows = [];
+      // use currently visible rows
+      const trs = reportsTbody.querySelectorAll('tr');
+      trs.forEach(tr => {
+        const cols = Array.from(tr.querySelectorAll('td')).slice(0,6);
+        const text = cols.map(c=>c.textContent.trim().replace(/\s+/g,' '));
+        rows.push(text);
+      });
+
+      // simple printing (no autotable to keep dependency light)
+      rows.forEach(row => {
+        const line = row.join(' | ');
+        doc.text(line, 40, y);
+        y += 14;
+        if(y > 740){ doc.addPage(); y = 40; }
+      });
+      doc.save('Telugu_Swaggers_Reports.pdf');
+    });
+
+    // also allow Export from Add card
+    exportAddPdfBtn.addEventListener('click', () => exportReportsPdfBtn.click());
+
+    // ---------- filters instant ----------
+    [filterAgencyEl, filterMovieEl, filterDateEl, filterStatusEl].forEach(el=>{
+      el.addEventListener('input', renderAndUpdateSummary);
+      el.addEventListener('change', renderAndUpdateSummary);
+    });
+
+    // ---------- ensure auth helper ----------
+    async function ensureAuth(){
+      if(!auth.currentUser){
+        try { await signInWithPopup(auth, provider); }
+        catch(e){ alert('Sign in required'); throw e; }
+      }
+    }
+
+    // ---------- helper to query docs collection (used earlier) ----------
+    // (reportsCol declared earlier)
+    // start listening once user is signed in; startReportsListener will subscribe
+
+    // no extra init — listener started in onAuthStateChanged when user signed in
+
+  </script>
+</body>
+</html>

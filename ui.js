@@ -1,188 +1,188 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {
-  getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import jsPDF from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
-
-// Firebase config
+// Firebase SDK Config
 const firebaseConfig = {
   apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
   authDomain: "vadisi-reports.firebaseapp.com",
   projectId: "vadisi-reports",
-  storageBucket: "vadisi-reports.appspot.com",
+  storageBucket: "vadisi-reports.firebasestorage.app",
   messagingSenderId: "574994089915",
   appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// DOM elements
-const addReportForm = document.getElementById("addReportForm");
-const signInBtn = document.getElementById("signInBtn");
-const signOutBtn = document.getElementById("signOutBtn");
-const reportsContainer = document.getElementById("reportsContainer");
-const summaryTotal = document.getElementById("summaryTotal");
-const exportPDFBtn = document.getElementById("exportPDFBtn");
+// DOM Elements
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const reportForm = document.getElementById("reportForm");
+const reportBody = document.getElementById("reportBody");
+const totalPending = document.getElementById("totalPending");
+const totalCleared = document.getElementById("totalCleared");
+const totalEntries = document.getElementById("totalEntries");
 
-// Auth handling
-onAuthStateChanged(auth, (user) => {
+// Helper - Convert date to DD-MON-YYYY
+function formatDate(dateString) {
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const date = new Date(dateString);
+  return `${String(date.getDate()).padStart(2, "0")}-${months[date.getMonth()]}-${date.getFullYear()}`;
+}
+
+// Sign In
+loginBtn.addEventListener("click", async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (error) {
+    console.error("Sign in failed:", error);
+    alert("Sign-in failed. Check Firebase domain settings.");
+  }
+});
+
+// Logout
+logoutBtn.addEventListener("click", async () => {
+  await auth.signOut();
+  loginBtn.hidden = false;
+  logoutBtn.hidden = true;
+  reportForm.hidden = true;
+  reportBody.innerHTML = "";
+});
+
+// Auth State
+auth.onAuthStateChanged(user => {
   if (user) {
-    document.getElementById("authSection").style.display = "none";
-    document.getElementById("appSection").style.display = "block";
+    loginBtn.hidden = true;
+    logoutBtn.hidden = false;
+    reportForm.hidden = false;
     loadReports(user.uid);
   } else {
-    document.getElementById("authSection").style.display = "block";
-    document.getElementById("appSection").style.display = "none";
+    loginBtn.hidden = false;
+    logoutBtn.hidden = true;
+    reportForm.hidden = true;
   }
-});
-
-signInBtn.addEventListener("click", async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    console.error(e);
-    alert("Sign-in failed");
-  }
-});
-
-signOutBtn.addEventListener("click", async () => {
-  await signOut(auth);
 });
 
 // Add Report
-addReportForm.addEventListener("submit", async (e) => {
+reportForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const user = auth.currentUser;
-  if (!user) return alert("Sign in first");
 
-  const link = document.getElementById("link").value.trim();
-  const agency = document.getElementById("agency").value.trim();
-  const movie = document.getElementById("movie").value.trim();
-  const date = document.getElementById("date").value || new Date().toISOString().split("T")[0];
-  const amount = document.getElementById("amount").value || 1200;
-  const status = document.getElementById("status").value.trim();
-  const notes = document.getElementById("notes").value.trim();
+  const user = auth.currentUser;
+  if (!user) return alert("Please sign in first.");
+
+  const link = document.getElementById("link").value;
+  const agency = document.getElementById("agency").value;
+  const movie = document.getElementById("movie").value;
+  const amount = parseFloat(document.getElementById("amount").value || 1200);
+  const status = document.getElementById("status").value;
+  const dateInput = document.getElementById("date").value;
+  const notes = document.getElementById("notes").value || "";
+
+  const date = dateInput ? formatDate(dateInput) : formatDate(new Date());
 
   try {
-    await addDoc(collection(db, "vadisi-reports"), {
+    await db.collection("reports").add({
       uid: user.uid,
       link,
       agency,
       movie,
-      date,
-      amount: Number(amount),
+      amount,
       status,
+      date,
       notes,
-      createdAt: new Date()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    addReportForm.reset();
+
+    reportForm.reset();
+    document.getElementById("amount").value = 1200;
     loadReports(user.uid);
-  } catch (err) {
-    console.error("Add failed:", err);
-    alert("Add failed: Missing or insufficient permissions.");
+  } catch (error) {
+    console.error("Add failed:", error);
+    alert("Failed to add report: " + error.message);
   }
 });
 
 // Load Reports
 async function loadReports(uid) {
-  const q = query(collection(db, "vadisi-reports"), where("uid", "==", uid), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  let totalPending = 0;
-  const data = [];
-
-  snap.forEach((docSnap) => {
-    const d = docSnap.data();
-    if (d.status.toLowerCase() === "pending") totalPending += d.amount;
-    data.push({ id: docSnap.id, ...d });
-  });
-
-  renderTable(data);
-  renderSummary(data, totalPending);
-}
-
-// Render Table
-function renderTable(data) {
-  if (data.length === 0) {
-    reportsContainer.innerHTML = `<p>No reports yet.</p>`;
-    return;
+  try {
+    const snapshot = await db.collection("reports").where("uid", "==", uid).orderBy("createdAt", "desc").get();
+    renderReports(snapshot.docs);
+  } catch (error) {
+    console.error("Failed to load reports:", error);
   }
+}
 
-  let html = `
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th>Insta/X Link</th>
-          <th>Agency</th>
-          <th>Movie</th>
-          <th>Date</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Notes</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  data.forEach((r) => {
-    html += `
-      <tr>
-        <td>${r.link}</td>
-        <td>${r.agency}</td>
-        <td>${r.movie}</td>
-        <td>${formatDate(r.date)}</td>
-        <td>${r.amount}</td>
-        <td>${r.status}</td>
-        <td>${r.notes || ""}</td>
-        <td><button class="edit-btn" data-id="${r.id}">✏️</button></td>
-      </tr>
+// Render Reports
+function renderReports(docs) {
+  reportBody.innerHTML = "";
+  let pendingTotal = 0, clearedTotal = 0;
+
+  docs.forEach(doc => {
+    const data = doc.data();
+    if (data.status === "Pending") pendingTotal += data.amount;
+    else if (data.status === "Cleared") clearedTotal += data.amount;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><a href="${data.link}" target="_blank">View</a></td>
+      <td>${data.agency}</td>
+      <td>${data.movie}</td>
+      <td>${data.amount}</td>
+      <td>${data.status}</td>
+      <td>${data.date}</td>
+      <td>${data.notes || ""}</td>
+      <td>
+        <button class="edit-btn" onclick="editReport('${doc.id}')">✏️</button>
+        <button class="delete-btn" onclick="deleteReport('${doc.id}')">🗑️</button>
+      </td>
     `;
-  });
-  html += `</tbody></table>`;
-  reportsContainer.innerHTML = html;
-}
-
-// Render Summary
-function renderSummary(data, totalPending) {
-  summaryTotal.textContent = `₹ ${totalPending}`;
-
-  // 3-month pending breakdown
-  const now = new Date();
-  const last3 = {};
-  data.forEach((r) => {
-    const d = new Date(r.date);
-    const key = `${d.toLocaleString("default", { month: "short" })} ${d.getFullYear()}`;
-    if ((now - d) / (1000 * 60 * 60 * 24) <= 90 && r.status.toLowerCase() === "pending") {
-      last3[key] = (last3[key] || 0) + r.amount;
-    }
+    reportBody.appendChild(row);
   });
 
-  console.log("Last 3 months pending:", last3);
+  totalPending.textContent = `₹${pendingTotal}`;
+  totalCleared.textContent = `₹${clearedTotal}`;
+  totalEntries.textContent = docs.length;
 }
 
-// Export to PDF
-if (exportPDFBtn) {
-  exportPDFBtn.addEventListener("click", () => {
-    const doc = new jsPDF();
-    doc.text("Telugu Swaggers - Reports", 10, 10);
-    doc.html(reportsContainer, {
-      callback: (pdf) => pdf.save("TeluguSwaggers_Reports.pdf"),
-      x: 10,
-      y: 20
-    });
+// Edit Report
+window.editReport = async function (id) {
+  const newStatus = prompt("Enter new status (Pending/Cleared):");
+  if (!newStatus) return;
+
+  try {
+    await db.collection("reports").doc(id).update({ status: newStatus });
+    loadReports(auth.currentUser.uid);
+  } catch (error) {
+    console.error("Edit failed:", error);
+  }
+};
+
+// Delete Report
+window.deleteReport = async function (id) {
+  if (!confirm("Are you sure you want to delete this report?")) return;
+  try {
+    await db.collection("reports").doc(id).delete();
+    loadReports(auth.currentUser.uid);
+  } catch (error) {
+    console.error("Delete failed:", error);
+  }
+};
+
+// Export PDF
+document.getElementById("exportPDF").addEventListener("click", () => {
+  const doc = new jsPDF();
+  doc.text("Telugu Swaggers Report", 10, 10);
+
+  const rows = [];
+  document.querySelectorAll("#reportBody tr").forEach(tr => {
+    const cells = [...tr.children].map(td => td.innerText);
+    rows.push(cells);
   });
-}
 
-// Helper
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  const day = d.getDate().toString().padStart(2, "0");
-  const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-}
+  doc.autoTable({
+    head: [["Link", "Agency", "Movie", "Amount", "Status", "Date", "Notes"]],
+    body: rows
+  });
+
+  doc.save("Telugu_Swaggers_Report.pdf");
+});

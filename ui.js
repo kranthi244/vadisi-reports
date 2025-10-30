@@ -5,7 +5,8 @@ import {
   addDoc,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import {
   getAuth,
@@ -31,20 +32,24 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// --- DOM ELEMENTS ---
+// --- ELEMENTS ---
 const addBtn = document.getElementById("addReport");
 const reportsTable = document.getElementById("reportsTable");
 const showRemindersBtn = document.getElementById("showReminders");
 const exportPDFBtn = document.getElementById("exportPDF");
+const totalPending = document.getElementById("totalPending");
+const totalCleared = document.getElementById("totalCleared");
+const entriesMonth = document.getElementById("entriesMonth");
+const topAgency = document.getElementById("topAgency");
 const loginBtn = document.getElementById("login");
 const logoutBtn = document.getElementById("logout");
 
-// --- AUTH HANDLING ---
+// --- AUTH ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
-    loadReports();
+    watchReports();
   } else {
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
@@ -52,22 +57,17 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-loginBtn.addEventListener("click", async () => {
-  await signInWithPopup(auth, provider);
-});
-
-logoutBtn.addEventListener("click", async () => {
-  await signOut(auth);
-});
+loginBtn.addEventListener("click", async () => await signInWithPopup(auth, provider));
+logoutBtn.addEventListener("click", async () => await signOut(auth));
 
 // --- ADD REPORT ---
 addBtn.addEventListener("click", async () => {
   const instagramLink = document.getElementById("instagramLink").value.trim();
   const agency = document.getElementById("agency").value.trim();
   const movie = document.getElementById("movie").value.trim();
-  const date = document.getElementById("date").value || new Date().toISOString().split("T")[0];
   const amount = document.getElementById("amount").value.trim();
   const status = document.getElementById("statusField").value.trim();
+  const date = document.getElementById("date").value || new Date().toISOString().split("T")[0];
 
   if (!instagramLink || !agency || !movie || !amount) {
     alert("Please fill all required fields.");
@@ -78,52 +78,75 @@ addBtn.addEventListener("click", async () => {
     instagramLink,
     agency,
     movie,
-    date,
-    amount,
+    amount: Number(amount),
     status,
+    date,
     createdAt: new Date()
   });
 
+  document.getElementById("instagramLink").value = "";
+  document.getElementById("agency").value = "";
+  document.getElementById("movie").value = "";
+  document.getElementById("amount").value = "";
+  document.getElementById("statusField").value = "Pending";
+
   alert("Report added successfully.");
-  loadReports();
 });
 
-// --- LOAD REPORTS ---
-async function loadReports() {
+// --- WATCH REPORTS (REALTIME UPDATES) ---
+function watchReports() {
   const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
-  const querySnapshot = await getDocs(q);
-
-  let html = `
-    <table>
-      <tr>
-        <th>Instagram Link</th>
-        <th>Agency</th>
-        <th>Movie</th>
-        <th>Date</th>
-        <th>Amount</th>
-        <th>Status</th>
-      </tr>
-  `;
-
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    html += `
-      <tr>
-        <td><a href="${data.instagramLink}" target="_blank">${data.instagramLink}</a></td>
-        <td>${data.agency}</td>
-        <td>${data.movie}</td>
-        <td>${data.date}</td>
-        <td>${data.amount}</td>
-        <td>${data.status}</td>
-      </tr>
+  onSnapshot(q, (snapshot) => {
+    let html = `
+      <table>
+        <tr>
+          <th>Link</th>
+          <th>Agency</th>
+          <th>Movie</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
     `;
-  });
 
-  html += "</table>";
-  reportsTable.innerHTML = html;
+    let totalPendingAmount = 0;
+    let totalClearedAmount = 0;
+    let agenciesCount = {};
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      html += `
+        <tr>
+          <td><a href="${data.instagramLink}" target="_blank">${data.instagramLink}</a></td>
+          <td>${data.agency}</td>
+          <td>${data.movie}</td>
+          <td>₹${data.amount}</td>
+          <td>${data.status}</td>
+          <td>${data.date}</td>
+        </tr>
+      `;
+      if (data.status.toLowerCase() === "pending") totalPendingAmount += data.amount;
+      else totalClearedAmount += data.amount;
+
+      agenciesCount[data.agency] = (agenciesCount[data.agency] || 0) + data.amount;
+    });
+
+    html += "</table>";
+    reportsTable.innerHTML = html;
+
+    const topAgencyName =
+      Object.keys(agenciesCount).length === 0
+        ? "-"
+        : Object.entries(agenciesCount).sort((a, b) => b[1] - a[1])[0][0];
+
+    totalPending.innerText = `₹${totalPendingAmount}`;
+    totalCleared.innerText = `₹${totalClearedAmount}`;
+    entriesMonth.innerText = snapshot.size;
+    topAgency.innerText = topAgencyName;
+  });
 }
 
-// --- SHOW REMINDERS (30+ DAYS OLD, UNPAID) ---
+// --- SHOW REMINDERS ---
 showRemindersBtn.addEventListener("click", async () => {
   const today = new Date();
   const q = query(collection(db, "reports"));
@@ -147,12 +170,12 @@ showRemindersBtn.addEventListener("click", async () => {
   let html = `
     <table>
       <tr>
-        <th>Instagram Link</th>
+        <th>Link</th>
         <th>Agency</th>
         <th>Movie</th>
-        <th>Date</th>
         <th>Amount</th>
         <th>Status</th>
+        <th>Date</th>
       </tr>
   `;
   reminderList.forEach((data) => {
@@ -161,9 +184,9 @@ showRemindersBtn.addEventListener("click", async () => {
         <td><a href="${data.instagramLink}" target="_blank">${data.instagramLink}</a></td>
         <td>${data.agency}</td>
         <td>${data.movie}</td>
-        <td>${data.date}</td>
-        <td>${data.amount}</td>
+        <td>₹${data.amount}</td>
         <td>${data.status}</td>
+        <td>${data.date}</td>
       </tr>
     `;
   });
@@ -171,21 +194,22 @@ showRemindersBtn.addEventListener("click", async () => {
   reportsTable.innerHTML = html;
 });
 
-// --- EXPORT PDF ---
+// --- EXPORT AS PDF ---
 exportPDFBtn.addEventListener("click", () => {
   const content = reportsTable.innerHTML;
   const printWindow = window.open("", "_blank");
   printWindow.document.write(`
     <html>
-    <head>
-      <title>Reports PDF</title>
-      <style>
-        table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-      </style>
-    </head>
-    <body>${content}</body>
+      <head>
+        <title>Reports PDF</title>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+        </style>
+      </head>
+      <body>${content}</body>
     </html>
   `);
   printWindow.document.close();

@@ -1,22 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-// --- FIREBASE CONFIG ---
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
   authDomain: "vadisi-reports.firebaseapp.com",
@@ -26,192 +8,140 @@ const firebaseConfig = {
   appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
 };
 
-// --- INITIALIZE ---
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-// --- ELEMENTS ---
-const addBtn = document.getElementById("addReport");
-const reportsTable = document.getElementById("reportsTable");
-const showRemindersBtn = document.getElementById("showReminders");
-const exportPDFBtn = document.getElementById("exportPDF");
-const totalPending = document.getElementById("totalPending");
-const totalCleared = document.getElementById("totalCleared");
-const entriesMonth = document.getElementById("entriesMonth");
-const topAgency = document.getElementById("topAgency");
-const loginBtn = document.getElementById("login");
-const logoutBtn = document.getElementById("logout");
-
-// --- AUTH ---
-onAuthStateChanged(auth, (user) => {
+// Authentication handler
+auth.onAuthStateChanged(user => {
   if (user) {
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
-    watchReports();
+    document.getElementById("user-email").innerText = user.email || "Signed in";
+    loadReports();
   } else {
-    loginBtn.style.display = "inline-block";
-    logoutBtn.style.display = "none";
-    reportsTable.innerHTML = "";
+    auth.signInAnonymously().then(() => {
+      loadReports();
+    });
   }
 });
 
-loginBtn.addEventListener("click", async () => await signInWithPopup(auth, provider));
-logoutBtn.addEventListener("click", async () => await signOut(auth));
+// Add Report
+document.getElementById("reportForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-// --- ADD REPORT ---
-addBtn.addEventListener("click", async () => {
-  const instagramLink = document.getElementById("instagramLink").value.trim();
   const agency = document.getElementById("agency").value.trim();
   const movie = document.getElementById("movie").value.trim();
+  const datePosted = document.getElementById("datePosted").value;
   const amount = document.getElementById("amount").value.trim();
-  const status = document.getElementById("statusField").value.trim();
-  const date = document.getElementById("date").value || new Date().toISOString().split("T")[0];
+  const paymentStatus = document.getElementById("paymentStatus").value;
+  const instagramLink = document.getElementById("instagramLink").value.trim();
+  const reminderDate = document.getElementById("reminderDate").value;
 
-  if (!instagramLink || !agency || !movie || !amount) {
-    alert("Please fill all required fields.");
+  if (!agency || !movie || !datePosted || !amount || !paymentStatus || !instagramLink) {
+    alert("Please fill all fields before submitting.");
     return;
   }
 
-  await addDoc(collection(db, "reports"), {
-    instagramLink,
-    agency,
-    movie,
-    amount: Number(amount),
-    status,
-    date,
-    createdAt: new Date()
-  });
-
-  document.getElementById("instagramLink").value = "";
-  document.getElementById("agency").value = "";
-  document.getElementById("movie").value = "";
-  document.getElementById("amount").value = "";
-  document.getElementById("statusField").value = "Pending";
-
-  alert("Report added successfully.");
-});
-
-// --- WATCH REPORTS (REALTIME UPDATES) ---
-function watchReports() {
-  const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
-  onSnapshot(q, (snapshot) => {
-    let html = `
-      <table>
-        <tr>
-          <th>Link</th>
-          <th>Agency</th>
-          <th>Movie</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Date</th>
-        </tr>
-    `;
-
-    let totalPendingAmount = 0;
-    let totalClearedAmount = 0;
-    let agenciesCount = {};
-
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      html += `
-        <tr>
-          <td><a href="${data.instagramLink}" target="_blank">${data.instagramLink}</a></td>
-          <td>${data.agency}</td>
-          <td>${data.movie}</td>
-          <td>₹${data.amount}</td>
-          <td>${data.status}</td>
-          <td>${data.date}</td>
-        </tr>
-      `;
-      if (data.status.toLowerCase() === "pending") totalPendingAmount += data.amount;
-      else totalClearedAmount += data.amount;
-
-      agenciesCount[data.agency] = (agenciesCount[data.agency] || 0) + data.amount;
+  try {
+    await db.collection("reports").add({
+      agency,
+      movie,
+      datePosted,
+      amount,
+      paymentStatus,
+      instagramLink,
+      reminderDate: reminderDate || null,
+      createdAt: new Date()
     });
 
-    html += "</table>";
-    reportsTable.innerHTML = html;
+    alert("Report added successfully!");
+    document.getElementById("reportForm").reset();
+    loadReports();
+  } catch (error) {
+    console.error("Error adding report:", error);
+    alert("Add failed: Missing or insufficient permissions.");
+  }
+});
 
-    const topAgencyName =
-      Object.keys(agenciesCount).length === 0
-        ? "-"
-        : Object.entries(agenciesCount).sort((a, b) => b[1] - a[1])[0][0];
+// Load Reports
+async function loadReports() {
+  const tableBody = document.getElementById("reportTableBody");
+  tableBody.innerHTML = "";
 
-    totalPending.innerText = `₹${totalPendingAmount}`;
-    totalCleared.innerText = `₹${totalClearedAmount}`;
-    entriesMonth.innerText = snapshot.size;
-    topAgency.innerText = topAgencyName;
-  });
+  try {
+    const snapshot = await db.collection("reports").orderBy("createdAt", "desc").get();
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const row = `
+        <tr>
+          <td>${data.agency}</td>
+          <td>${data.movie}</td>
+          <td>${data.datePosted}</td>
+          <td>${data.amount}</td>
+          <td>${data.paymentStatus}</td>
+          <td><a href="${data.instagramLink}" target="_blank">Open</a></td>
+          <td>${data.reminderDate ? data.reminderDate : "-"}</td>
+        </tr>
+      `;
+      tableBody.insertAdjacentHTML("beforeend", row);
+    });
+    checkReminders(snapshot);
+  } catch (error) {
+    console.error("Error loading reports:", error);
+    alert("Unable to load reports. Check permissions or connection.");
+  }
 }
 
-// --- SHOW REMINDERS ---
-showRemindersBtn.addEventListener("click", async () => {
-  const today = new Date();
-  const q = query(collection(db, "reports"));
-  const querySnapshot = await getDocs(q);
-  const reminderList = [];
+// Check for reminders
+function checkReminders(snapshot) {
+  const today = new Date().toISOString().split("T")[0];
+  const reminders = [];
 
-  querySnapshot.forEach((doc) => {
+  snapshot.forEach(doc => {
     const data = doc.data();
-    const reportDate = new Date(data.date);
-    const diffDays = Math.floor((today - reportDate) / (1000 * 60 * 60 * 24));
-    if (diffDays > 30 && data.status.toLowerCase() !== "paid") {
-      reminderList.push(data);
+    if (data.reminderDate && data.reminderDate === today) {
+      reminders.push(`${data.movie} - ${data.agency}`);
     }
   });
 
-  if (reminderList.length === 0) {
-    alert("No pending payments older than 30 days.");
-    return;
+  const reminderBox = document.getElementById("reminderBox");
+  if (reminders.length > 0) {
+    reminderBox.innerHTML = `<strong>Today's Reminders:</strong><br>${reminders.join("<br>")}`;
+    reminderBox.style.display = "block";
+  } else {
+    reminderBox.style.display = "none";
   }
+}
 
-  let html = `
-    <table>
-      <tr>
-        <th>Link</th>
-        <th>Agency</th>
-        <th>Movie</th>
-        <th>Amount</th>
-        <th>Status</th>
-        <th>Date</th>
-      </tr>
-  `;
-  reminderList.forEach((data) => {
-    html += `
-      <tr>
-        <td><a href="${data.instagramLink}" target="_blank">${data.instagramLink}</a></td>
-        <td>${data.agency}</td>
-        <td>${data.movie}</td>
-        <td>₹${data.amount}</td>
-        <td>${data.status}</td>
-        <td>${data.date}</td>
-      </tr>
-    `;
+// Export to PDF
+document.getElementById("exportPdf").addEventListener("click", async () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text("Vadisi Reports", 14, 15);
+
+  const headers = [["Agency", "Movie", "Date", "Amount", "Status", "Link", "Reminder"]];
+  const rows = [];
+
+  const snapshot = await db.collection("reports").orderBy("createdAt", "desc").get();
+  snapshot.forEach((docSnap) => {
+    const d = docSnap.data();
+    rows.push([
+      d.agency,
+      d.movie,
+      d.datePosted,
+      d.amount,
+      d.paymentStatus,
+      d.instagramLink,
+      d.reminderDate || "-"
+    ]);
   });
-  html += "</table>";
-  reportsTable.innerHTML = html;
-});
 
-// --- EXPORT AS PDF ---
-exportPDFBtn.addEventListener("click", () => {
-  const content = reportsTable.innerHTML;
-  const printWindow = window.open("", "_blank");
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Reports PDF</title>
-        <style>
-          body { font-family: Arial, sans-serif; }
-          table { border-collapse: collapse; width: 100%; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-        </style>
-      </head>
-      <body>${content}</body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
+  doc.autoTable({
+    startY: 25,
+    head: headers,
+    body: rows,
+    styles: { fontSize: 10 },
+  });
+
+  doc.save("Vadisi_Reports.pdf");
 });

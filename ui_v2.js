@@ -1,4 +1,28 @@
-// Firebase initialization
+// ui_v2.js — Final Telugu Swaggers Dashboard
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import jsPDF from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDeuC7hS30cJHXoTGx6BbmW8g_kwLGakDA",
   authDomain: "vadisi-reports.firebaseapp.com",
@@ -8,159 +32,253 @@ const firebaseConfig = {
   appId: "1:574994089915:web:a83456675ac8f7c4fba69e"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-let reports = [];
-let filteredReports = [];
-
-// Elements
-const reportForm = document.getElementById("reportForm");
-const reportsList = document.getElementById("reportsList");
-const exportBtn = document.getElementById("exportPDF");
-const dateFromInput = document.getElementById("dateFrom");
-const dateToInput = document.getElementById("dateTo");
+// DOM Elements
+const reportsContainer = document.getElementById("reports");
+const totalPendingElement = document.getElementById("totalPending");
+const pendingByMonthElement = document.getElementById("pendingByMonth");
+const pendingByAgencyElement = document.getElementById("pendingByAgency");
+const pendingByMovieElement = document.getElementById("pendingByMovie");
 const signInBtn = document.getElementById("signInBtn");
 const signOutBtn = document.getElementById("signOutBtn");
 
-// --- Authentication ---
+// Add report elements
+const addForm = document.getElementById("addReportForm");
+const linkInput = document.getElementById("link");
+const agencyInput = document.getElementById("agency");
+const movieInput = document.getElementById("movie");
+const dateInput = document.getElementById("date");
+const amountInput = document.getElementById("amount");
+const statusInput = document.getElementById("status");
+const notesInput = document.getElementById("notes");
+
+// Export PDF elements
+const fromDateInput = document.getElementById("fromDate");
+const toDateInput = document.getElementById("toDate");
+const exportBtn = document.getElementById("exportPDF");
+
+let user = null;
+
+// Authentication
 signInBtn.addEventListener("click", async () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  await auth.signInWithPopup(provider);
+  await signInWithPopup(auth, provider);
 });
 
-signOutBtn.addEventListener("click", () => {
-  auth.signOut();
+signOutBtn.addEventListener("click", async () => {
+  await signOut(auth);
 });
 
-auth.onAuthStateChanged((user) => {
-  if (user) {
+onAuthStateChanged(auth, (u) => {
+  user = u;
+  if (u) {
     signInBtn.style.display = "none";
-    signOutBtn.style.display = "block";
+    signOutBtn.style.display = "inline-block";
     loadReports();
   } else {
-    signInBtn.style.display = "block";
+    signInBtn.style.display = "inline-block";
     signOutBtn.style.display = "none";
-    reportsList.innerHTML = "";
+    reportsContainer.innerHTML = "";
+    updateSummary([]);
   }
 });
 
-// --- Load Reports ---
-async function loadReports() {
-  const snapshot = await db.collection("reports").orderBy("datePosted", "desc").get();
-  reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  applyDateFilter();
-}
-
-// --- Add Report ---
-reportForm.addEventListener("submit", async (e) => {
+// Add Report
+addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!user) return alert("Please sign in first.");
 
-  const report = {
-    agency: document.getElementById("agency").value.trim(),
-    movie: document.getElementById("movie").value.trim(),
-    instagramLink: document.getElementById("instagramLink").value.trim(),
-    amount: parseFloat(document.getElementById("amount").value.trim()) || 0,
-    status: document.getElementById("status").value.trim(),
-    datePosted: document.getElementById("datePosted").value,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  };
+  try {
+    await addDoc(collection(db, "reports"), {
+      link: linkInput.value,
+      agency: agencyInput.value,
+      movie: movieInput.value,
+      date: dateInput.value,
+      amount: parseFloat(amountInput.value) || 1200,
+      status: statusInput.value,
+      notes: notesInput.value || "",
+      uid: user.uid,
+      createdAt: new Date()
+    });
 
-  await db.collection("reports").add(report);
-  reportForm.reset();
-  loadReports();
+    addForm.reset();
+  } catch (err) {
+    console.error(err);
+    alert("Add failed: " + err.message);
+  }
 });
 
-// --- Filter by Date Range ---
-dateFromInput.addEventListener("change", applyDateFilter);
-dateToInput.addEventListener("change", applyDateFilter);
+// Load Reports (Real-time)
+function loadReports() {
+  const reportsRef = collection(db, "reports");
+  const q = query(reportsRef, where("uid", "==", user.uid));
 
-function applyDateFilter() {
-  const from = dateFromInput.value ? new Date(dateFromInput.value) : null;
-  const to = dateToInput.value ? new Date(dateToInput.value) : null;
-
-  filteredReports = reports.filter((r) => {
-    const reportDate = new Date(r.datePosted);
-    if (from && reportDate < from) return false;
-    if (to && reportDate > to) return false;
-    return true;
+  onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderReports(data);
+    updateSummary(data);
   });
-
-  renderReports(filteredReports);
 }
 
-// --- Render Reports ---
-function renderReports(list) {
-  reportsList.innerHTML = "";
+// Render Reports
+function renderReports(reports) {
+  reportsContainer.innerHTML = "";
 
-  if (list.length === 0) {
-    reportsList.innerHTML = "<p class='no-data'>No reports found for this range.</p>";
-    return;
-  }
+  reports.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "report-row";
 
-  list.forEach((r) => {
-    const div = document.createElement("div");
-    div.className = "report-item";
-    div.innerHTML = `
-      <div class="report-details">
-        <p><strong>Agency:</strong> ${r.agency}</p>
-        <p><strong>Movie:</strong> ${r.movie}</p>
-        <p><strong>Instagram:</strong> <a href="${r.instagramLink}" target="_blank">${r.instagramLink}</a></p>
-        <p><strong>Amount:</strong> ₹${r.amount}</p>
-        <p><strong>Status:</strong> ${r.status}</p>
-        <p><strong>Date Posted:</strong> ${r.datePosted}</p>
-      </div>
+    row.innerHTML = `
+      <div class="report-field">${r.link}</div>
+      <div class="report-field">${r.agency}</div>
+      <div class="report-field">${r.movie}</div>
+      <div class="report-field">${r.date}</div>
+      <div class="report-field">${r.amount}</div>
+      <div class="report-field">${r.status}</div>
+      <div class="report-field">${r.notes}</div>
       <div class="report-actions">
-        <button class="edit-btn" onclick="editReport('${r.id}')">Edit</button>
-        <button class="delete-btn" onclick="deleteReport('${r.id}')">Delete</button>
+        <button class="edit-btn" data-id="${r.id}">✎</button>
+        <button class="delete-btn" data-id="${r.id}">🗑️</button>
       </div>
     `;
-    reportsList.appendChild(div);
+
+    reportsContainer.appendChild(row);
+  });
+
+  document.querySelectorAll(".edit-btn").forEach((btn) =>
+    btn.addEventListener("click", (e) => handleEdit(e.target.dataset.id))
+  );
+
+  document.querySelectorAll(".delete-btn").forEach((btn) =>
+    btn.addEventListener("click", (e) => handleDelete(e.target.dataset.id))
+  );
+}
+
+// Edit Inline
+async function handleEdit(id) {
+  const fields = Array.from(document.querySelectorAll(`[data-id="${id}"]`)).map(
+    (el) => el.parentElement.parentElement
+  );
+  const report = fields[0];
+  const children = report.querySelectorAll(".report-field");
+  const values = Array.from(children).map((c) => c.textContent);
+
+  children.forEach((c, i) => {
+    if (i < 7)
+      c.innerHTML = `<input value="${values[i]}" style="width:100%;padding:2px;">`;
+  });
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "💾";
+  saveBtn.className = "save-btn";
+  report.querySelector(".report-actions").appendChild(saveBtn);
+
+  saveBtn.addEventListener("click", async () => {
+    const updated = {
+      link: children[0].querySelector("input").value,
+      agency: children[1].querySelector("input").value,
+      movie: children[2].querySelector("input").value,
+      date: children[3].querySelector("input").value,
+      amount: parseFloat(children[4].querySelector("input").value),
+      status: children[5].querySelector("input").value,
+      notes: children[6].querySelector("input").value
+    };
+    await updateDoc(doc(db, "reports", id), updated);
   });
 }
 
-// --- Edit Report ---
-async function editReport(id) {
-  const newAmount = prompt("Enter new amount:");
-  const newStatus = prompt("Enter new status:");
-  if (newAmount || newStatus) {
-    await db.collection("reports").doc(id).update({
-      ...(newAmount && { amount: parseFloat(newAmount) }),
-      ...(newStatus && { status: newStatus }),
-    });
-    loadReports();
+// Delete Report
+async function handleDelete(id) {
+  if (confirm("Delete this report?")) {
+    await deleteDoc(doc(db, "reports", id));
   }
 }
 
-// --- Delete Report ---
-async function deleteReport(id) {
-  if (confirm("Are you sure you want to delete this report?")) {
-    await db.collection("reports").doc(id).delete();
-    loadReports();
-  }
+// Summary
+function updateSummary(reports) {
+  const totalPending = reports
+    .filter((r) => r.status.toLowerCase() === "pending")
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+  totalPendingElement.textContent = totalPending.toFixed(2);
+
+  const recentMonths = {};
+  const now = new Date();
+
+  reports.forEach((r) => {
+    if (r.status.toLowerCase() === "pending") {
+      const d = new Date(r.date);
+      const key = `${d.toLocaleString("default", { month: "short" })}-${d.getFullYear()}`;
+      if (!recentMonths[key]) recentMonths[key] = 0;
+      recentMonths[key] += r.amount || 0;
+    }
+  });
+
+  pendingByMonthElement.innerHTML = Object.entries(recentMonths)
+    .map(([k, v]) => `<div>${k}: ₹${v}</div>`)
+    .join("");
+
+  const byAgency = {};
+  reports.forEach((r) => {
+    if (r.status.toLowerCase() === "pending") {
+      if (!byAgency[r.agency]) byAgency[r.agency] = 0;
+      byAgency[r.agency] += r.amount || 0;
+    }
+  });
+
+  pendingByAgencyElement.innerHTML = Object.entries(byAgency)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([a, v]) => `<div>${a}: ₹${v}</div>`)
+    .join("");
+
+  const byMovie = {};
+  reports.forEach((r) => {
+    if (r.status.toLowerCase() === "pending") {
+      if (!byMovie[r.movie]) byMovie[r.movie] = 0;
+      byMovie[r.movie] += r.amount || 0;
+    }
+  });
+
+  pendingByMovieElement.innerHTML = Object.entries(byMovie)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([m, v]) => `<div>${m}: ₹${v}</div>`)
+    .join("");
 }
 
-// --- Export PDF ---
-exportBtn.addEventListener("click", () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+// Export PDF with Date Range
+exportBtn.addEventListener("click", async () => {
+  if (!user) return alert("Please sign in first.");
 
-  doc.setFontSize(16);
-  doc.text("Telugu Swaggers - Promotion Dashboard", 10, 10);
-  doc.setFontSize(12);
-  doc.text(`Reports (${dateFromInput.value || "All"} → ${dateToInput.value || "All"})`, 10, 20);
+  const start = fromDateInput.value ? new Date(fromDateInput.value) : null;
+  const end = toDateInput.value ? new Date(toDateInput.value) : null;
+
+  const snapshot = await getDocs(
+    query(collection(db, "reports"), where("uid", "==", user.uid))
+  );
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const filtered = data.filter((r) => {
+    const d = new Date(r.date);
+    return (!start || d >= start) && (!end || d <= end);
+  });
+
+  const docPDF = new jsPDF();
+  docPDF.setFontSize(14);
+  docPDF.text("Telugu Swaggers - Promotion Dashboard", 14, 15);
 
   let y = 30;
-  filteredReports.forEach((r, i) => {
-    doc.text(
-      `${i + 1}. ${r.movie} | ${r.agency} | ₹${r.amount} | ${r.status} | ${r.datePosted}`,
+  filtered.forEach((r, i) => {
+    docPDF.text(
+      `${i + 1}. ${r.movie} | ${r.agency} | ${r.amount} | ${r.status} | ${r.date}`,
       10,
       y
     );
     y += 8;
   });
 
-  doc.save(`Reports_${new Date().toISOString().slice(0, 10)}.pdf`);
-}
-);
+  docPDF.save("TeluguSwaggers_Reports.pdf");
+});

@@ -1,183 +1,226 @@
-* {
+/* General Page Layout */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8f9fb;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  color: #1a1a1a;
 }
 
-body {
-  background: #fffef8;
-  color: #222;
-  padding: 20px;
-  transition: all 0.3s ease;
-}
-
-/* Dark Mode */
-body.dark {
-  background: #121212;
-  color: #f2f2f2;
-}
-
+/* Header Styling */
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #ffcc00;
-  padding: 15px 25px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  background: #ffffff;
+  padding: 20px 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 header h1 {
-  font-size: 22px;
-  font-weight: bold;
+  margin: 0;
+  font-size: 30px; /* increased by 2 points */
+  font-weight: 700;
+  color: #222;
+  letter-spacing: 0.5px;
 }
 
-.auth-buttons button {
-  margin-left: 10px;
-  padding: 8px 14px;
+header h2 {
+  margin: 0;
+  font-size: 15px;
+  color: #555;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.header-right button {
+  background: #1a73e8;
   border: none;
-  background: #000;
-  color: #fff;
+  padding: 10px 18px;
+  color: white;
+  font-weight: 600;
   border-radius: 6px;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
-.auth-buttons button:hover {
-  opacity: 0.85;
+.header-right button:hover {
+  background: #1669c1;
 }
 
-.summary {
-  display: flex;
-  justify-content: space-around;
-  margin: 25px 0;
-  flex-wrap: wrap;
+/* Page Container Layout */
+.container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+  padding: 40px;
+  max-width: 1300px;
+  margin: auto;
 }
 
+/* Card Container */
 .card {
-  background: #fff9d6;
-  padding: 20px;
+  background: #fff;
   border-radius: 10px;
-  width: 28%;
-  text-align: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  padding: 25px 30px;
 }
 
-.card:hover {
-  transform: scale(1.03);
+/* Section Headings */
+.card h3 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+  font-weight: 600;
 }
 
-body.dark .card {
-  background: #1e1e1e;
-  color: #f2f2f2;
+/* Form Inputs */
+form input,
+form select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border 0.2s;
+  box-sizing: border-box;
 }
 
-.form-section {
-  background: #fffbe8;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+form input:focus,
+form select:focus {
+  border-color: #1a73e8;
+  outline: none;
 }
 
-body.dark .form-section {
-  background: #1b1b1b;
+/* Add Report Button */
+form button {
+  width: 100%;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
-form {
+form button:hover {
+  background: #1669c1;
+}
+
+/* Reports List */
+#reportsList {
+  margin-top: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Individual Report Row */
+.report-item {
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.report-details p {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* Inline Action Buttons */
+.report-actions button {
+  margin-left: 8px;
+  background: #e0e0e0;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.report-actions .delete-btn {
+  background: #e53935;
+  color: #fff;
+}
+
+.report-actions .edit-btn {
+  background: #fbc02d;
+  color: #000;
+}
+
+/* Filter Section */
+.filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-form input, form select, form button {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  flex: 1 1 200px;
-}
-
-form button {
-  background: #ffcc00;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-form button:hover {
-  background: #e6b800;
-}
-
-.table-section {
-  margin-top: 35px;
-  background: #fffbe8;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  overflow-x: auto;
-}
-
-body.dark .table-section {
-  background: #1b1b1b;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-
-table th, table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: center;
-}
-
-table th {
-  background: #ffcc00;
-  color: #000;
-}
-
-body.dark table th {
-  background: #222;
-  color: #ffcc00;
-}
-
-.saveBtn {
-  background: #007bff;
-  color: white;
-  border: none;
+.filters input {
+  width: 130px;
+  padding: 6px;
+  font-size: 13px;
   border-radius: 5px;
-  padding: 5px 8px;
-  cursor: pointer;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
-.saveBtn:hover {
-  opacity: 0.8;
-}
-
-.table-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-}
-
-.table-controls button {
-  padding: 8px 14px;
-  background: #ffcc00;
+.filters button {
+  padding: 7px 14px;
+  background: #1a73e8;
   border: none;
-  border-radius: 6px;
+  color: white;
+  border-radius: 5px;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: bold;
+  transition: background 0.2s;
 }
 
-.table-controls button:hover {
-  background: #e6b800;
+.filters button:hover {
+  background: #1669c1;
 }
 
-footer {
+/* Empty State */
+.no-data {
   text-align: center;
-  margin-top: 25px;
+  color: #777;
   font-size: 14px;
-  opacity: 0.7;
+  margin-top: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .container {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .header-right button {
+    padding: 8px 14px;
+  }
+
+  form input,
+  form select {
+    font-size: 13px;
+  }
 }

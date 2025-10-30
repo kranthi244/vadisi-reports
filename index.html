@@ -1,160 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Telugu Swaggers — Reports</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-
   <style>
-    body {
-      background: #f7f9fc;
-      font-family: "Inter", sans-serif;
-      padding: 20px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: auto;
-    }
-    .card {
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    }
-    h5 {
-      font-weight: 600;
-    }
-    #summaryCards .card {
-      text-align: center;
-      padding: 15px;
-    }
-    #remindersBox {
-      background: #fff5f5;
-      color: #b52b2b;
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: 600;
-      margin-top: 10px;
-      display: none;
-    }
+    body { background-color: #f8fafc; color: #1e293b; }
+    .container { max-width: 1000px; margin-top: 40px; }
+    .card { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .btn-primary { background-color: #facc15; border: none; color: black; font-weight: 600; }
+    .btn-primary:hover { background-color: #eab308; }
+    table { background-color: white; border-radius: 12px; overflow: hidden; }
+    th { background-color: #1e293b; color: white; }
+    .summary-card { background: #fff7ed; border-left: 5px solid #f59e0b; padding: 12px 20px; border-radius: 8px; margin-bottom: 10px; }
   </style>
 </head>
-
 <body>
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h3>Telugu Swaggers</h3>
-        <p class="text-muted m-0">Promotions & Payments Dashboard</p>
-      </div>
-      <div>
-        <span id="user-email" class="text-muted me-3">Signed in as: vadisikranthi143@gmail.com</span>
-        <button id="logoutBtn" class="btn btn-outline-dark btn-sm">Logout</button>
-      </div>
+    <h2 class="fw-bold mb-0">Telugu Swaggers</h2>
+    <p class="text-muted mb-4">Promotions & Payments Dashboard</p>
+
+    <!-- Login Status -->
+    <div class="d-flex justify-content-end mb-3">
+      <span id="user-email" class="me-2 text-muted">Not signed in</span>
+      <button id="logout" class="btn btn-sm btn-outline-secondary">Logout</button>
+    </div>
+
+    <!-- Summary Section -->
+    <div id="summary" class="mb-4">
+      <div class="summary-card"><strong>Total Promotions:</strong> <span id="totalCount">0</span></div>
+      <div class="summary-card"><strong>Total Amount:</strong> ₹<span id="totalAmount">0</span></div>
+      <div class="summary-card"><strong>Pending Payments:</strong> ₹<span id="pendingAmount">0</span></div>
     </div>
 
     <!-- Add Report Section -->
     <div class="card p-4 mb-4">
-      <h5 class="mb-3">Add Report</h5>
-      <form id="reportForm" class="row g-3">
+      <h5>Add Report</h5>
+      <div class="row g-3">
+        <div class="col-md-4"><input type="text" id="link" class="form-control" placeholder="Insta/X Link"></div>
+        <div class="col-md-4"><input type="text" id="agency" class="form-control" placeholder="Agency"></div>
+        <div class="col-md-4"><input type="text" id="movie" class="form-control" placeholder="Movie"></div>
+        <div class="col-md-3"><input type="number" id="amount" class="form-control" placeholder="Amount"></div>
         <div class="col-md-3">
-          <input type="text" id="instagramLink" class="form-control" placeholder="Insta/X Link" required />
-        </div>
-        <div class="col-md-3">
-          <input type="text" id="agency" class="form-control" placeholder="Agency" required />
-        </div>
-        <div class="col-md-3">
-          <input type="text" id="movie" class="form-control" placeholder="Movie" required />
-        </div>
-        <div class="col-md-2">
-          <input type="number" id="amount" class="form-control" placeholder="Amount" required />
-        </div>
-        <div class="col-md-2">
-          <select id="paymentStatus" class="form-select">
+          <select id="status" class="form-select">
             <option value="Pending">Pending</option>
-            <option value="Cleared">Cleared</option>
+            <option value="Paid">Paid</option>
           </select>
         </div>
-        <div class="col-md-3">
-          <input type="date" id="datePosted" class="form-control" />
-        </div>
-        <div class="col-md-12">
-          <textarea id="notes" class="form-control" placeholder="Notes (optional)"></textarea>
-        </div>
-        <div class="col-md-12 text-end">
-          <button type="submit" class="btn btn-warning">Add</button>
-          <button type="reset" class="btn btn-light">Clear</button>
-          <button type="button" id="exportPdf" class="btn btn-outline-dark">Export PDF</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Summary Section -->
-    <div id="summarySection" class="card p-4 mb-4">
-      <h5 class="mb-3">Summary</h5>
-      <div id="summaryCards" class="row g-3">
-        <div class="col-md-3">
-          <div class="card">
-            <div class="card-body">
-              <h6>Total Pending Amount</h6>
-              <h4 id="totalPending">₹0</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card">
-            <div class="card-body">
-              <h6>Total Cleared Amount</h6>
-              <h4 id="totalCleared">₹0</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card">
-            <div class="card-body">
-              <h6>Entries This Month</h6>
-              <h4 id="entriesThisMonth">0</h4>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card">
-            <div class="card-body">
-              <h6>Top Agency</h6>
-              <h4 id="topAgency">—</h4>
-            </div>
-          </div>
-        </div>
+        <div class="col-md-3"><input type="date" id="date" class="form-control"></div>
+        <div class="col-md-3"><input type="date" id="reminder" class="form-control" placeholder="Reminder Date"></div>
+        <div class="col-md-12"><textarea id="notes" class="form-control" placeholder="Notes (optional)"></textarea></div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button id="addReport" class="btn btn-primary">Add</button>
+        <button id="clearFields" class="btn btn-secondary">Clear</button>
+        <button id="exportPDF" class="btn btn-outline-dark">Export PDF</button>
       </div>
     </div>
 
     <!-- Reports Section -->
     <div class="card p-4">
-      <h5 class="mb-3">Your Reports</h5>
-      <div id="remindersBox"></div>
-      <div class="table-responsive">
-        <table class="table table-striped align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th>Link</th>
-              <th>Agency</th>
-              <th>Movie</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody id="reportTableBody"></tbody>
-        </table>
-      </div>
+      <h5>Your Reports</h5>
+      <table class="table table-striped mt-3" id="reportsTable">
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Movie</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Link</th>
+            <th>Reminder</th>
+          </tr>
+        </thead>
+        <tbody id="reportsBody"></tbody>
+      </table>
     </div>
   </div>
 
-  <script src="ui_v2.js"></script>
+  <script type="module" src="ui_v3.js"></script>
 </body>
 </html>
